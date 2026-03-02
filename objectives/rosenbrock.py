@@ -45,8 +45,7 @@ def rosenbrock(x):
     xi = x[:, :-1]    # shape (n, d-1)
     xnext = x[:, 1:]  # shape (n, d-1)
 
-    # No explicit d is needed in standard Rosenbrock: slices x[:-1] and x[1:] generate the (d-1) coupled terms          
     result = np.sum(100 * (xnext - xi**2)**2 + (1 - xi)**2, axis =1)  # shape (n,)
-    
+
     # Returns a scalar when the input is a single point and an array of shape (n) when the input is multiple points
     return float(result[0]) if single_input else result
