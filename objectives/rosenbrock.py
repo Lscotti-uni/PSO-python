@@ -42,8 +42,8 @@ def rosenbrock(x):
         x = x[None, :] # Add a batch dimension to make x shape (1, d)
 
     # We must slice along the dimension axis (axis=1), not along the batch axis.
-    xi = x[:, :-1]    # shape (n, d-1)
-    xnext = x[:, 1:]  # shape (n, d-1)
+    xi = x[:, :-1]    # takes all rows and all columns except the last one, resulting in shape (n, d-1)
+    xnext = x[:, 1:]  # takes all rows and all columns except the first one, resulting in shape (n, d-1)
 
     result = np.sum(100 * (xnext - xi**2)**2 + (1 - xi)**2, axis =1)  # shape (n,)
 
