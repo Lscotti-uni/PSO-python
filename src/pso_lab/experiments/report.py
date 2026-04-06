@@ -143,62 +143,85 @@ def generate_protocol_report(protocol_root: str | Path, output_path: str | Path)
     overall_slowest = max(speedups, key=lambda row: float(row["mean_total_time"]))
     best_quality_variant = min(by_variant, key=lambda row: float(row["mean_best_value"]))
 
-    benchmark_plot = Path(os.path.relpath(analysis_root / "benchmark_mean_convergence.png", output_path.parent)).as_posix()
-    speedup_plot = Path(os.path.relpath(analysis_root / "benchmark_speedup.png", output_path.parent)).as_posix()
-    boxplot = Path(os.path.relpath(analysis_root / "benchmark_final_fitness_boxplot.png", output_path.parent)).as_posix()
+    public_examples_root = Path("results/examples/analysis")
+    if output_path.as_posix() == "docs/final_report.md" and public_examples_root.exists():
+        plot_root = public_examples_root
+    else:
+        plot_root = analysis_root
 
-    report = f"""# Informe Final: Laboratorio PSO
+    benchmark_plot = Path(os.path.relpath(plot_root / "benchmark_mean_convergence.png", output_path.parent)).as_posix()
+    speedup_plot = Path(os.path.relpath(plot_root / "benchmark_speedup.png", output_path.parent)).as_posix()
+    boxplot = Path(os.path.relpath(plot_root / "benchmark_final_fitness_boxplot.png", output_path.parent)).as_posix()
 
-## 1. Resumen Ejecutivo
+    report = f"""# Final Report: PSO Laboratory
 
-Este proyecto implementa un laboratorio completo de Particle Swarm Optimization (PSO) en Python con foco en arquitectura mantenible, observabilidad y comparacion experimental entre estrategias de ejecucion secuencial, concurrente y paralela.
+## 1. Executive Summary
 
-El core del algoritmo se mantiene comun para todas las variantes. La diferencia entre versiones se concentra en la estrategia de evaluacion de fitness y en el modo de actualizacion, lo que evita mantener varias implementaciones disjuntas del PSO y hace la comparacion mucho mas justa.
+This project implements a complete Particle Swarm Optimization (PSO) laboratory
+in Python with emphasis on maintainable architecture, observability, and
+experimental comparison across sequential, concurrent, and parallel execution
+strategies.
 
-El protocolo experimental guardado en `{protocol_root.as_posix()}` incluye:
+The algorithmic core is shared across all variants. Differences between
+versions are limited to the fitness-evaluation strategy and the update mode,
+which avoids maintaining multiple unrelated PSO implementations and keeps the
+comparison fair.
 
-- benchmarks sobre `Sphere`, `Rosenbrock`, `Rastrigin` y `Ackley`
-- dimensiones `2`, `10` y `30`
-- cinco semillas reproducibles por caso
-- variantes `V0` a `V5`
-- grid search reducido `3x3x3` sobre `w`, `c1` y `c2` para cada variante
-- persistencia estructurada de metricas, logs, resumenes y trayectorias
+The experimental protocol stored under `{protocol_root.as_posix()}` includes:
 
-Conclusiones ejecutivas:
+- benchmark runs on `Sphere`, `Rosenbrock`, `Rastrigin`, and `Ackley`
+- dimensions `2`, `10`, and `30`
+- five reproducible seeds per case
+- variants `V0` to `V5`
+- a reduced `3x3x3` grid search over `w`, `c1`, and `c2`
+- structured persistence of metrics, logs, summaries, and trajectories
 
-- La variante mas rapida del estudio fue `{overall_fastest["variant"]}` en dimension `{overall_fastest["dimensions"]}`, con tiempo medio `{overall_fastest["mean_total_time"]:.4f}` s.
-- La variante mas lenta fue `{overall_slowest["variant"]}` en dimension `{overall_slowest["dimensions"]}`, lo que confirma el peso del overhead cuando el trabajo por tarea es pequeno.
-- La mejor calidad media global la obtuvo `{best_quality_variant["variant"]}` con fitness medio `{best_quality_variant["mean_best_value"]:.4f}`.
-- En los benchmarks numericos de este proyecto, la recomendacion dominante se concentra en las variantes con menor overhead, especialmente `{overall_fastest["variant"]}`.
+Key outcomes:
 
-## 2. Objetivo Del Trabajo
+- The fastest variant in the study was `{overall_fastest["variant"]}` in
+  dimension `{overall_fastest["dimensions"]}`, with mean time
+  `{overall_fastest["mean_total_time"]:.4f}` s.
+- The slowest variant was `{overall_slowest["variant"]}` in dimension
+  `{overall_slowest["dimensions"]}`, which highlights the cost of overhead when
+  the work per task is small.
+- The best overall mean optimization quality was obtained by
+  `{best_quality_variant["variant"]}` with mean fitness
+  `{best_quality_variant["mean_best_value"]:.4f}`.
+- In the numerical benchmarks used here, the most effective recommendation is
+  to favor variants with lower overhead, especially `{overall_fastest["variant"]}`.
 
-El objetivo era disenar e implementar una solucion completa y mantenible de PSO en Python, con buenas practicas de ingenieria del software, y usarla como banco de pruebas para comparar distintas estrategias de concurrencia y paralelismo.
+## 2. Project Goal
 
-Ademas del optimizador, la practica exigia:
+The goal was to design and implement a complete and maintainable PSO solution in
+Python, following software-engineering practices, and to use it as a laboratory
+for comparing concurrency and parallelism strategies.
 
-- benchmarks estandar
-- instrumentacion y logging
-- grid search de hiperparametros
-- persistencia en disco
-- visualizacion
-- scripts reproducibles
-- documentacion de arquitectura
+Beyond the optimizer itself, the project required:
 
-## 3. Arquitectura Del Proyecto
+- standard benchmarks
+- instrumentation and logging
+- hyperparameter grid search
+- disk persistence
+- visualization
+- reproducible scripts
+- architecture-oriented documentation
 
-La estructura final se organiza asi:
+## 3. Project Architecture
 
-- `core/`: motor PSO, estado, topologias, limites y configuracion
-- `objectives/`: funciones benchmark y registro central
-- `parallel/`: evaluadores `sequential`, `thread`, `process`, `asyncio`, `vectorized` y `joblib`
-- `experiments/`: runners, benchmarks, grid search, analisis y generacion de informe
-- `io/`: guardado de `JSON`, `CSV` y `NPZ`
-- `viz/`: curvas de convergencia y animaciones del enjambre
-- `dashboard/`: interfaz local en Gradio para inspeccionar resultados
-- `scripts/`: comandos reproducibles de alto nivel
+The final structure is organized as follows:
 
-### 3.1 Diagrama de dependencias
+- `core/`: PSO engine, state, topology, bounds, and configuration
+- `objectives/`: benchmark functions and central registry
+- `parallel/`: `sequential`, `thread`, `process`, `asyncio`, `vectorized`, and
+  `joblib` evaluators
+- `experiments/`: runners, benchmarks, grid search, analysis, and report
+  generation
+- `io/`: `JSON`, `CSV`, and `NPZ` persistence
+- `viz/`: convergence plots and swarm animations
+- `dashboard/`: local Gradio dashboard for stored results
+- `scripts/`: reproducible high-level command-line entry points
+
+### 3.1 Dependency Diagram
 
 ```mermaid
 flowchart LR
@@ -215,18 +238,20 @@ flowchart LR
     RES --> D[dashboard.app]
 ```
 
-### 3.2 Decisiones de diseno
+### 3.2 Design Decisions
 
-1. Core comun y estrategias intercambiables.
-2. Politica de limites por defecto `clamp`, con `reflect` como alternativa.
-3. Topologia minima `global-best` y topologia adicional `ring`.
-4. `V3` con latencia simulada para que `asyncio` tenga sentido metodologico.
-5. `V4` como referencia de paralelismo implicito mediante NumPy.
-6. `V5` con `joblib` para comparar un framework de mas alto nivel sobre la misma API experimental.
+1. A single PSO core with interchangeable strategies.
+2. `clamp` as the default boundary policy, with `reflect` as an alternative.
+3. `global-best` as the minimum topology and `ring` as an additional local
+   topology.
+4. `V3` uses simulated latency so that `asyncio` is methodologically justified.
+5. `V4` is treated as the reference for implicit parallelism through NumPy.
+6. `V5` uses `joblib` to compare a higher-level backend on the same
+   experimental API.
 
-### 3.3 Uso de dataclass
+### 3.3 Dataclass Usage
 
-Se emplean `dataclass` en:
+`dataclass` is used in:
 
 - `PSOConfig`
 - `SwarmState`
@@ -235,31 +260,32 @@ Se emplean `dataclass` en:
 - `ObjectiveSpec`
 - `EvaluationStats`
 
-Esto facilita inspeccion, tipado, persistencia y trazabilidad del estado del algoritmo.
+This improves inspection, typing, persistence, and state traceability.
 
-## 4. Metodologia Experimental
+## 4. Experimental Methodology
 
 ### 4.1 Benchmarks
 
-- Objetivos: `Sphere`, `Rosenbrock`, `Rastrigin`, `Ackley`
-- Dimensiones: `2`, `10`, `30`
-- Semillas: `11`, `23`, `37`, `47`, `59`
-- Iteraciones maximas: `120`
-- Tamano de enjambre: `40`
-- Topologia por defecto: `global`
-- Politica de limites: `clamp`
+- Objectives: `Sphere`, `Rosenbrock`, `Rastrigin`, `Ackley`
+- Dimensions: `2`, `10`, `30`
+- Seeds: `11`, `23`, `37`, `47`, `59`
+- Maximum iterations: `120`
+- Swarm size: `40`
+- Default topology: `global`
+- Boundary policy: `clamp`
 
 ### 4.2 Grid Search
 
-Se ejecuto una rejilla `3x3x3` sobre:
+A reduced `3x3x3` grid was evaluated over:
 
 - `w in {{0.50, 0.7298, 0.90}}`
 - `c1 in {{1.20, 1.49618, 1.80}}`
 - `c2 in {{1.20, 1.49618, 1.80}}`
 
-para cinco semillas y para cada variante `V0` a `V5`, usando `Sphere` en dimension `10` como caso de ajuste.
+for five seeds and for each variant `V0` to `V5`, using `Sphere` in dimension
+`10` as the tuning case.
 
-### 4.3 Comandos reproducibles
+### 4.3 Reproducible Commands
 
 ```bash
 python scripts/run_pso.py --objective sphere --dim 10 --iters 200 --seed 123
@@ -269,9 +295,9 @@ python scripts/run_full_protocol.py --config configs/protocol_full.yaml
 python scripts/run_dashboard.py --results-root results/protocol_full
 ```
 
-### 4.4 Instrumentacion
+### 4.4 Instrumentation
 
-Cada iteracion registra:
+Each iteration records:
 
 - `best_fitness`
 - `mean_fitness`
@@ -283,164 +309,189 @@ Cada iteracion registra:
 - `overhead_time`
 - `tasks_submitted`
 
-Esto permite separar el coste de calculo del overhead introducido por cada estrategia.
+This allows the implementation to separate useful computation from orchestration
+overhead.
 
-## 5. Resultados De Benchmarks
+## 5. Benchmark Results
 
-![Curva media de convergencia]({benchmark_plot})
+![Mean convergence curve]({benchmark_plot})
 
-### 5.1 Rendimiento agregado por caso
+### 5.1 Aggregate Performance Per Case
 
 {_markdown_table(benchmark_summary[:24], ["variant", "objective", "dimensions", "runs", "mean_best_value", "mean_total_time", "mean_auc", "mean_convergence_iteration"])}
 
-### 5.2 Tiempo medio y speedup frente a V0
+### 5.2 Mean Time And Speedup Against V0
 
-![Speedup por estrategia]({speedup_plot})
+![Speedup by strategy]({speedup_plot})
 
 {_markdown_table(speedups, ["variant", "dimensions", "mean_total_time", "speedup_vs_V0"])}
 
-### 5.3 Calidad final media por variante
+### 5.3 Mean Final Quality By Variant
 
-![Distribucion de fitness final]({boxplot})
+![Final fitness distribution]({boxplot})
 
 {_markdown_table(by_variant, ["variant", "mean_best_value"])}
 
-### 5.4 Ganadores por caso
+### 5.4 Winners Per Case
 
-Mejor variante por tiempo:
+Best variant by time:
 
 {_markdown_table(fastest_per_case, ["objective", "dimensions", "winner_variant", "mean_total_time"])}
 
-Mejor variante por calidad final:
+Best variant by final quality:
 
 {_markdown_table(best_quality_per_case, ["objective", "dimensions", "winner_variant", "mean_best_value"])}
 
-### 5.5 Lectura de resultados
+### 5.5 Interpretation
 
-Los resultados muestran un patron muy consistente:
+The results show a consistent pattern:
 
-1. `V4` domina claramente en tiempo medio en casi todos los casos.
-2. `V1` no supera al baseline, lo que encaja con la limitacion del GIL.
-3. `V2` es correcto pero caro para estos benchmarks; el IPC pesa demasiado.
-4. `V3` cumple su papel metodologico, pero no es competitivo en CPU-bound.
-5. `V5` aporta una comparacion util frente a `V2`: misma idea general de paralelismo por procesos, pero con una capa de abstraccion mas alta y un perfil de overhead propio.
-6. La calidad de optimizacion es muy similar entre las variantes basadas en el mismo core, lo que confirma que la estrategia de evaluacion no cambia el comportamiento esencial del algoritmo.
+1. `V4` clearly dominates mean runtime in most cases.
+2. `V1` does not beat the baseline, which matches expectations under the GIL.
+3. `V2` is correct but expensive for these benchmarks because IPC overhead is
+   too large.
+4. `V3` is methodologically sound, but it is not competitive for CPU-bound
+   workloads.
+5. `V5` provides a useful comparison against `V2`: similar process-oriented
+   logic, but through a higher-level abstraction with its own overhead profile.
+6. Optimization quality remains very similar across variants that share the
+   same core, confirming that the evaluation strategy does not change the
+   essential algorithmic behavior.
 
-## 6. Resultados De Grid Search
+## 6. Grid Search Results
 
-La mejor configuracion encontrada para cada variante fue:
+The best configuration found for each variant was:
 
 {_markdown_table(best_grid, ["variant", "mean_best_value", "mean_total_time", "mean_auc", "mean_convergence_iteration", "inertia", "cognitive", "social"])}
 
-### 6.1 Interpretacion del ajuste
+### 6.1 Tuning Interpretation
 
-El grid search deja varias ideas utiles:
+The grid search suggests several useful points:
 
-- `w = 0.50` aparece de forma estable en las mejores configuraciones.
-- Un termino cognitivo alto (`c1 = 1.80`) favorece una convergencia fuerte en `Sphere`.
-- `V4` adopta una combinacion algo distinta en el termino social, lo que sugiere que la dinamica efectiva cambia al operar por lotes.
+- `w = 0.50` appears consistently in the strongest configurations.
+- A high cognitive term (`c1 = 1.80`) helps strong convergence on `Sphere`.
+- `V4` favors a slightly different social term, suggesting that the effective
+  dynamics shift when the implementation operates on full arrays.
 
-## 7. Discusion Critica
+## 7. Critical Discussion
 
-### 7.1 V0 frente a V4
+### 7.1 V0 Versus V4
 
-La comparacion mas clara del proyecto es `V0` frente a `V4`. La version vectorizada desplaza el trabajo desde bucles Python hacia operaciones NumPy, reduce overhead interpretado y consigue speedups altos en todas las dimensiones.
+The clearest comparison in the project is `V0` versus `V4`. The vectorized
+version shifts work from Python loops to NumPy array operations, reduces
+interpreted overhead, and achieves strong speedups across dimensions.
 
-### 7.2 Hilos y GIL
+### 7.2 Threads And The GIL
 
-`V1` usa `ThreadPoolExecutor`. En evaluacion numerica simple la mejora es limitada porque el GIL no desaparece. La variante es util como contraste didactico: concurrencia no implica speedup automaticamente.
+`V1` uses `ThreadPoolExecutor`. For simple numerical evaluation, improvement is
+limited because the GIL does not disappear. The variant is still useful as a
+didactic contrast: concurrency does not automatically imply speedup.
 
-### 7.3 Procesos e IPC
+### 7.3 Processes And IPC
 
-`V2` elimina el GIL al usar procesos, pero paga serializacion, copia de datos y coordinacion. En este protocolo ese coste domina, por lo que la variante queda por detras del baseline.
+`V2` avoids the GIL by using processes, but it pays for serialization, data
+copying, and coordination. In this protocol, that cost dominates, so the
+variant remains behind the baseline.
 
-### 7.4 Asyncio con sentido
+### 7.4 Asyncio With A Valid Use Case
 
-`V3` no se presenta como aceleracion universal, sino como solucion para objetivos con latencia. Es una decision honesta metodologicamente y evita vender `asyncio` como mejora en CPU-bound cuando no lo es.
+`V3` is not presented as a universal accelerator. It is used for latency-aware
+evaluation scenarios, which keeps the methodological interpretation honest and
+avoids overstating the value of `asyncio` for CPU-bound numerical work.
 
-### 7.5 Que estrategia conviene segun el caso
+### 7.5 Which Strategy Fits Which Case
 
-- Si la funcion objetivo esta vectorizada con NumPy: `V4`
-- Si la funcion objetivo es costosa y no vectorizable: probar `V2`
-- Si quieres comparar un framework de mas alto nivel para paralelismo local: `V5`
-- Si hay latencia o simulacion de I/O: `V3`
-- Si se quiere una referencia simple y clara: `V0`
-- Si se quiere demostrar el efecto del GIL: `V1`
+- If the objective is vectorized with NumPy: favor `V4`
+- If evaluation is expensive and not vectorizable: investigate `V2`
+- If a higher-level local parallel backend is desirable: investigate `V5`
+- If latency or simulated I/O matters: use `V3`
+- If a simple reference implementation is needed: use `V0`
+- If GIL behavior must be illustrated explicitly: use `V1`
 
-## 8. Persistencia, Observabilidad Y Reproducibilidad
+## 8. Persistence, Observability, And Reproducibility
 
-Cada corrida guarda:
+Each run stores:
 
-- `summary.json`: configuracion, commit, hardware, estrategia y metricas finales
-- `history.csv`: metricas por iteracion
-- `run.log`: logging estructurado con tiempos y eventos
-- `trajectory.npz`: cuando se activa seguimiento del enjambre
+- `summary.json`: configuration, commit, hardware, strategy, and final metrics
+- `history.csv`: per-iteration metrics
+- `run.log`: structured logging with timing and events
+- `trajectory.npz`: when swarm tracking is enabled
 
-De cara al repositorio versionado, se puede conservar un subconjunto pequeno de
-artefactos representativos en `results/examples/`, dejando el resto como
-resultados locales regenerables.
+The repository may keep a small subset of representative artifacts under
+`results/examples/`, while the rest remains as reproducible local output.
 
-Ademas, el proyecto incluye:
+The project also includes:
 
-- dashboard local en Gradio
-- plots de analisis agregados
-- visualizacion 2D/3D del enjambre
-- tests automaticos para reproducibilidad, limites, convergencia y monotonicidad del mejor global
+- a local Gradio dashboard
+- aggregate analysis plots
+- 2D and 3D swarm visualization
+- automated tests for reproducibility, bounds, convergence, and monotonic
+  global-best behavior
 
 ### 8.1 Dashboard
 
-El dashboard permite:
+The dashboard can:
 
-- listar corridas guardadas
-- inspeccionar `summary.json`
-- ver la curva de convergencia
-- abrir artefactos graficos
-- revisar plots agregados del protocolo
+- list stored runs
+- inspect `summary.json`
+- display the convergence curve
+- open graphical artifacts
+- show aggregate analysis plots
 
-Comando:
+Command:
 
 ```bash
 python scripts/run_dashboard.py --results-root results/protocol_full
 ```
 
-## 9. Limitaciones Y Amenazas A La Validez
+## 9. Limitations And Validity Threats
 
-- El dashboard se apoya en resultados ya generados; no sustituye al analisis experimental.
-- La variante con procesos puede resultar cara en Windows y en maquinas con pocos nucleos.
-- La visualizacion 3D muestra la nube del enjambre, pero no una superficie completa.
-- Los resultados dependen de la maquina; por eso se registran hardware y commit.
-- El grid search se ha centrado en `Sphere`, por lo que no necesariamente transfiere igual a funciones mas rugosas.
+- The dashboard depends on previously generated results; it does not replace
+  the experimental analysis itself.
+- Process-based variants can be expensive on Windows or on machines with few
+  cores.
+- The 3D visualization shows the swarm cloud rather than a full objective
+  surface.
+- Results depend on the execution environment, which is why hardware and commit
+  metadata are recorded.
+- The grid search is centered on `Sphere`, so its conclusions may not transfer
+  equally well to more rugged functions.
 
-## 10. Recomendaciones Finales
+## 10. Final Recommendations
 
-- Para funciones numericas vectorizables, priorizar `V4`.
-- Para evaluacion costosa y no vectorizable, estudiar `V2` con batching.
-- Usar `V5` cuando interese comparar ergonomia y comportamiento de `joblib` frente a procesos manuales.
-- Usar `V1` como comparacion didactica del efecto del GIL.
-- Reservar `V3` para objetivos con latencia o I/O real o simulada.
-- Mantener `V0` como baseline de referencia en todas las comparativas.
+- For vectorizable numerical objectives, prioritize `V4`.
+- For expensive, non-vectorizable evaluation, study `V2` with batching.
+- Use `V5` when comparing `joblib` ergonomics and behavior against manually
+  managed process pools.
+- Use `V1` as a didactic comparison for GIL effects.
+- Reserve `V3` for objectives with real or simulated latency or I/O.
+- Keep `V0` as the conceptual baseline in all comparisons.
 
-## 11. Artefactos Generados
+## 11. Generated Artifacts
 
 - Benchmarks: `{benchmark_root.as_posix()}`
 - Grid search: `{grid_root.as_posix()}`
-- Plots de analisis: `{analysis_root.as_posix()}`
-- Dashboard local: `python scripts/run_dashboard.py --results-root {protocol_root.as_posix()}`
+- Analysis plots: `{analysis_root.as_posix()}`
+- Local dashboard: `python scripts/run_dashboard.py --results-root {protocol_root.as_posix()}`
 
-## 12. Cierre
+## 12. Conclusion
 
-El objetivo de la practica se ha cubierto de forma completa:
+The project goal has been fully covered:
 
-- se diseno un PSO mantenible
-- se implementaron variantes intercambiables
-- se instrumento el sistema
-- se persistieron resultados
-- se generaron visualizaciones
-- se ejecuto un protocolo experimental reproducible
-- se anadio un dashboard local para exploracion
-- se incorporo un bonus `V5` con `joblib`
+- a maintainable PSO implementation was designed
+- interchangeable variants were implemented
+- the system was instrumented
+- results were persisted
+- visual outputs were generated
+- a reproducible experimental protocol was executed
+- a local dashboard was added for exploration
+- an optional `V5` bonus based on `joblib` was incorporated
 
-La conclusion principal es clara: para este proyecto y este perfil de benchmark, la mejor combinacion entre simplicidad, velocidad y calidad sigue viniendo de las variantes con menos overhead, con `V4` como referencia fuerte para objetivos vectorizables y `V0` como baseline conceptual mas limpio. `V5` aporta ademas una comparacion valiosa con un framework de mas alto nivel.
+The main conclusion is straightforward: for this project and this benchmark
+profile, the best balance between simplicity, speed, and quality comes from the
+lowest-overhead variants, with `V4` as the strongest reference for vectorizable
+objectives and `V0` as the clean conceptual baseline. `V5` adds a valuable
+comparison through a higher-level parallel framework.
 """
     output_path = Path(output_path)
     output_path.write_text(report, encoding="utf-8")

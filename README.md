@@ -1,14 +1,14 @@
 # PSO Lab
 
-Laboratorio de Particle Swarm Optimization (PSO) en Python con foco en:
+Python laboratory for Particle Swarm Optimization (PSO) with emphasis on:
 
-- arquitectura mantenible
-- comparacion entre estrategias secuenciales, concurrentes y paralelas
-- instrumentacion y persistencia
-- benchmarks, grid search y visualizacion
-- analisis local con dashboard
+- maintainable architecture
+- comparison of sequential, concurrent, and parallel execution strategies
+- instrumentation and persistence
+- benchmark suites, grid search, and visualization
+- local analysis through a dashboard
 
-## Estructura
+## Structure
 
 ```text
 .
@@ -28,19 +28,19 @@ Laboratorio de Particle Swarm Optimization (PSO) en Python con foco en:
 `-- tests/
 ```
 
-## Instalacion
+## Installation
 
 ```bash
 pip install -e .
 ```
 
-Para desarrollo:
+For development:
 
 ```bash
 pip install -e .[dev]
 ```
 
-## Arquitectura
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -57,138 +57,139 @@ flowchart LR
     RES --> D[dashboard.app]
 ```
 
-El proyecto mantiene un unico motor PSO y cambia solo las piezas
-intercambiables:
+The project keeps a single PSO core and swaps only interchangeable components:
 
-- estrategia de evaluacion
-- modo de actualizacion
-- politica de limites
-- topologia social
+- evaluation strategy
+- update mode
+- boundary policy
+- social topology
 
-La politica de limites por defecto es `clamp`. Tambien se incluye `reflect`.
-La topologia minima es `global-best` y se anade `ring` como variante local.
+The default boundary policy is `clamp`, with `reflect` available as an
+alternative. The baseline topology is `global-best`, and `ring` is included as
+a local topology variant.
 
-## Estrategias Implementadas
+## Implemented Strategies
 
-| Variante | Evaluacion | Actualizacion | Uso esperado |
+| Variant | Evaluation | Update | Expected use |
 |---|---|---|---|
-| `V0` | secuencial | bucles Python | baseline |
-| `V1` | `ThreadPoolExecutor` | bucles Python | evaluar impacto del GIL |
-| `V2` | `ProcessPoolExecutor` + batching | bucles Python | CPU-bound mas pesado |
-| `V3` | `asyncio.gather` | bucles Python | escenarios con latencia |
-| `V4` | NumPy vectorizado | NumPy vectorizado | paralelismo implicito |
-| `V5` | `joblib.Parallel` con `loky` | bucles Python | framework de mas alto nivel para procesos y batching |
+| `V0` | sequential | Python loops | baseline |
+| `V1` | `ThreadPoolExecutor` | Python loops | illustrate GIL impact |
+| `V2` | `ProcessPoolExecutor` with batching | Python loops | heavier CPU-bound evaluation |
+| `V3` | `asyncio.gather` | Python loops | latency-oriented scenarios |
+| `V4` | NumPy vectorized | NumPy vectorized | implicit parallelism |
+| `V5` | `joblib.Parallel` with `loky` | Python loops | higher-level process-style backend |
 
-Notas sobre `V5`:
+Notes about `V5`:
 
-- por defecto usa `joblib_backend = loky`
-- se apoya en la misma API comun de evaluacion que el resto
-- en entornos restringidos puede usarse `threading` como fallback de depuracion
+- the default backend is `joblib_backend = loky`
+- it uses the same common evaluation API as the other strategies
+- `threading` can be used as a fallback backend in restricted environments
 
-## Scripts Principales
+## Main Scripts
 
-| Script | Uso |
+| Script | Purpose |
 |---|---|
-| `scripts/run_pso.py` | Ejecuta una corrida individual |
-| `scripts/run_benchmarks.py` | Lanza la suite de benchmarks |
-| `scripts/run_grid_search.py` | Ejecuta rejilla de hiperparametros |
-| `scripts/make_viz.py` | Genera plots y frames o GIF de una corrida |
-| `scripts/analyze_results.py` | Resume resultados ya guardados |
-| `scripts/run_dashboard.py` | Abre el dashboard local en Gradio |
-| `scripts/run_full_protocol.py` | Ejecuta el protocolo experimental completo |
+| `scripts/run_pso.py` | Execute a single PSO run |
+| `scripts/run_benchmarks.py` | Execute the benchmark suite |
+| `scripts/run_grid_search.py` | Execute hyperparameter grid search |
+| `scripts/make_viz.py` | Generate plots and frames or GIFs from a saved run |
+| `scripts/analyze_results.py` | Summarize previously saved results |
+| `scripts/run_dashboard.py` | Launch the local Gradio dashboard |
+| `scripts/run_full_protocol.py` | Execute the full experimental protocol |
 
-## Ejemplos De Uso
+## Usage Examples
 
-Corrida individual:
+Single run:
 
 ```bash
 python scripts/run_pso.py --objective sphere --dim 10 --iters 200 --seed 123
 ```
 
-Version vectorizada:
+Vectorized variant:
 
 ```bash
 python scripts/run_pso.py --strategy vectorized --update-mode vectorized
 ```
 
-Version `V5` con joblib:
+`V5` with joblib:
 
 ```bash
 python scripts/run_pso.py --strategy joblib --workers 4
 ```
 
-Version `V5` con backend alternativo:
+`V5` with an alternative backend:
 
 ```bash
 python scripts/run_pso.py --strategy joblib --workers 4 --joblib-backend threading
 ```
 
-Benchmark reducido:
+Reduced benchmark suite:
 
 ```bash
 python scripts/run_benchmarks.py --config configs/benchmark_suite.yaml --max-cases 8
 ```
 
-Grid search reducido:
+Reduced grid search:
 
 ```bash
 python scripts/run_grid_search.py --config configs/grid_search.yaml --max-configs 5
 ```
 
-Visualizacion de una corrida guardada:
+Visualization for a saved run:
 
 ```bash
 python scripts/make_viz.py --run-dir results/runs/<run_id> --gif
 ```
 
-Notas sobre visualizacion:
+Visualization notes:
 
-- para animar el enjambre, la corrida original debe haberse ejecutado con
+- to animate the swarm, the original run must be executed with
   `--track-trajectory`
-- la animacion espacial del enjambre solo esta soportada para `d=2` o `d=3`
-- si la corrida tiene `d>3`, `make_viz.py` genera `convergence.png` y muestra
-  un aviso en lugar de fallar
+- spatial swarm animation is supported only for `d=2` or `d=3`
+- for `d>3`, `make_viz.py` generates `convergence.png` and prints a warning
+  instead of failing
 
-Analisis de resultados:
+Result analysis:
 
 ```bash
 python scripts/analyze_results.py --results-root results
 ```
 
-Dashboard local:
+Local dashboard:
 
 ```bash
 python scripts/run_dashboard.py --results-root results
 ```
 
-Protocolo completo:
+Full protocol:
 
 ```bash
 python scripts/run_full_protocol.py --config configs/protocol_full.yaml
 ```
 
-## Persistencia
+## Persistence
 
-Cada ejecucion guarda:
+Each run stores:
 
-- `summary.json`: configuracion, commit, hardware y metricas finales
-- `history.csv`: metricas por iteracion
-- `trajectory.npz`: trayectorias comprimidas cuando se habilita
-- `run.log`: logging estructurado
+- `summary.json`: configuration, commit, hardware, and final metrics
+- `history.csv`: per-iteration metrics
+- `trajectory.npz`: compressed trajectories when enabled
+- `run.log`: structured logging
 
-Se eligio:
+Chosen formats:
 
-- `JSON` para metadatos jerarquicos
-- `CSV` para series temporales faciles de abrir
-- `NPZ` para datos numericos comprimidos
+- `JSON` for hierarchical metadata
+- `CSV` for time series that are easy to inspect
+- `NPZ` for compressed numeric arrays
 
-## Configuracion Y Reproducibilidad
+## Configuration And Reproducibility
 
-- todas las corridas aceptan `seed`
-- el commit Git y datos basicos de hardware se guardan automaticamente
-- los experimentos se pueden lanzar desde YAML y sobreescribir por CLI
-- `V5` se controla con `strategy = joblib`, `workers`, `batch_size` y `joblib_backend`
-- `trajectory.npz` solo aparece si activas `track_trajectory`
+- every run accepts a `seed`
+- Git commit information and basic hardware metadata are stored automatically
+- experiments can be launched from YAML and overridden from the CLI
+- `V5` is controlled through `strategy = joblib`, `workers`, `batch_size`, and
+  `joblib_backend`
+- `trajectory.npz` is generated only when `track_trajectory` is enabled
 
 ## Tests
 
@@ -196,41 +197,37 @@ Se eligio:
 pytest
 ```
 
-Los tests cubren:
+The test suite covers:
 
-- reproducibilidad por semilla
-- politicas de limites
-- monotonicidad del mejor global
-- convergencia basica en Sphere
-- validez del registro de objetivos
-- consistencia basica del evaluador `V5`
+- seed reproducibility
+- boundary policies
+- monotonic global-best evolution
+- basic convergence on Sphere
+- objective-registry correctness
+- basic `V5` evaluator consistency
 
-## Documentacion
+## Documentation
 
-- `docs/final_report.md`: informe experimental detallado
+- `docs/final_report.md`: detailed experimental report
 
-En la version que se suba a GitHub, el documento de `docs/` que se conservara
-sera `docs/final_report.md`. El resto de notas y documentos de estudio se
-mantienen como material local personal.
+Within `docs/`, the repository tracks only `docs/final_report.md`. Personal
+study notes and local PDF exports remain outside version control.
 
-## GitHub Y Artefactos
+## GitHub And Artifacts
 
-El repo ya esta preparado para publicacion futura, pero todavia no se ha hecho
-`push`.
+The repository tracks source code, configuration, tests, and a small subset of
+result artifacts.
 
-Por defecto se ignoran:
+Ignored by default:
 
 - `results/**`
-- `docs/**` excepto `docs/final_report.md`
+- `docs/**` except `docs/final_report.md`
 - `docs/*.pdf`
 
-La idea es versionar el codigo y la documentacion en Markdown, y dejar los
-artefactos generados como resultados locales regenerables.
+To satisfy the project requirements without turning the repository into a large
+artifact dump, a small representative subset is versioned in `results/examples/`.
 
-Para cumplir la consigna sin inflar el repositorio, se versiona tambien un
-subconjunto pequeno y representativo de resultados en `results/examples/`.
-
-Ejemplos incluidos en GitHub:
+Tracked examples:
 
 - `results/examples/single_run/summary.json`
 - `results/examples/single_run/history.csv`
@@ -238,13 +235,3 @@ Ejemplos incluidos en GitHub:
 - `results/examples/benchmarks/benchmark_summary.csv`
 - `results/examples/benchmarks/benchmark_summary.json`
 - `results/examples/analysis/*.png`
-
-## Presentacion
-
-Para una demo clara suele funcionar bien este flujo:
-
-1. Ejecutar una corrida `V0`, una `V4` y una `V5`.
-2. Lanzar un benchmark reducido y mostrar la tabla resumen.
-3. Enseñar un `summary.json` y el `history.csv`.
-4. Abrir el GIF o frames de una corrida en 2D.
-5. Cerrar con `docs/final_report.md`.
