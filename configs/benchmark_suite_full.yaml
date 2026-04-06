@@ -1,0 +1,55 @@
+suite_name: benchmark_full_protocol
+output_dir: results/protocol_full/benchmarks
+objectives:
+  - sphere
+  - rosenbrock
+  - rastrigin
+  - ackley
+dimensions: [2, 10, 30]
+seeds: [11, 23, 37, 47, 59]
+defaults:
+  swarm_size: 40
+  iterations: 120
+  inertia: 0.7298
+  cognitive: 1.49618
+  social: 1.49618
+  topology: global
+  neighborhood_size: 3
+  boundary_strategy: clamp
+  velocity_clamp: 0.20
+  tolerance: 1.0e-8
+  stagnation_iters: 50
+  workers: 4
+  batch_size: 8
+  joblib_backend: loky
+  log_every: 9999
+strategies:
+  V0:
+    strategy: sequential
+    update_mode: loop
+    batch_size: 1
+  V1:
+    strategy: thread
+    update_mode: loop
+    batch_size: 1
+    workers: 4
+  V2:
+    strategy: process
+    update_mode: loop
+    batch_size: 8
+    workers: 4
+  V3:
+    strategy: asyncio
+    update_mode: loop
+    batch_size: 1
+    async_latency_ms: 2.0
+    async_jitter_ms: 1.0
+  V4:
+    strategy: vectorized
+    update_mode: vectorized
+    batch_size: 40
+  V5:
+    strategy: joblib
+    update_mode: loop
+    batch_size: 8
+    workers: 4

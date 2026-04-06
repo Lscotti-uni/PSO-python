@@ -1,77 +1,250 @@
-﻿# Mi PSO - Benchmark Objectives
+# PSO Lab
 
-This project currently contains a set of benchmark objective functions, implemented in Python with NumPy and prepared for both scalar and batch evaluation.
+Laboratorio de Particle Swarm Optimization (PSO) en Python con foco en:
 
-Current repository status:
-- `objectives/` module with vectorized objective functions.
-- Central registry (`registry.py`) to access each objective by name.
-- PSO engine and experiment runners are not included yet.
+- arquitectura mantenible
+- comparacion entre estrategias secuenciales, concurrentes y paralelas
+- instrumentacion y persistencia
+- benchmarks, grid search y visualizacion
+- analisis local con dashboard
 
-## Current Structure
+## Estructura
 
-- `objectives/ackley.py`
-- `objectives/rastrigin.py`
-- `objectives/rosenbrock.py`
-- `objectives/sphere.py`
-- `objectives/registry.py`
-- `.gitignore`
+```text
+.
+|-- configs/
+|-- docs/
+|-- results/
+|-- scripts/
+|-- src/pso_lab/
+|   |-- core/
+|   |-- dashboard/
+|   |-- experiments/
+|   |-- io/
+|   |-- objectives/
+|   |-- parallel/
+|   |-- utils/
+|   `-- viz/
+`-- tests/
+```
 
-## Available Objectives
-
-| Key (`registry`) | Name | Default bounds | Global optimum |
-|---|---|---|---|
-| `sphere` | Sphere | `(-5.12, 5.12)` | `0.0` at `x = 0` |
-| `rosenbrock` | Rosenbrock | `(-5.0, 10.0)` | `0.0` at `x = 1` |
-| `rastrigin` | Rastrigin | `(-5.12, 5.12)` | `0.0` at `x = 0` |
-| `ackley` | Ackley | `(-32.768, 32.768)` | `0.0` at `x = 0` |
-
-## Requirements
-
-- Python 3.9+
-- NumPy
-
-Minimal installation:
+## Instalacion
 
 ```bash
-pip install numpy
+pip install -e .
 ```
 
-## Quick Usage
+Para desarrollo:
 
-### 1) Direct function call
-
-```python
-import numpy as np
-from objectives.sphere import sphere
-
-x = np.array([1.0, -2.0, 0.5])
-print(sphere(x))
+```bash
+pip install -e .[dev]
 ```
 
-Batch input `(n, d)` is also supported:
+## Arquitectura
 
-```python
-X = np.array([[1.0, 0.0], [0.5, -0.5]])
-print(sphere(X))
+```mermaid
+flowchart LR
+    S[scripts/*] --> R[experiments.runner]
+    R --> C[core.PSO]
+    R --> O[objectives.registry]
+    R --> P[parallel/* evaluators]
+    C --> B[core.bounds]
+    C --> T[core.topology]
+    C --> STOP[core.stopping]
+    R --> IO[io.results]
+    IO --> RES[(results/*)]
+    RES --> V[viz.plots]
+    RES --> D[dashboard.app]
 ```
 
-### 2) Registry-based usage
+El proyecto mantiene un unico motor PSO y cambia solo las piezas
+intercambiables:
 
-```python
-from objectives.registry import list_objectives, get_objective
+- estrategia de evaluacion
+- modo de actualizacion
+- politica de limites
+- topologia social
 
-print(list_objectives())
-spec = get_objective("ackley")
-value = spec.fn([0.0, 0.0, 0.0])
+La politica de limites por defecto es `clamp`. Tambien se incluye `reflect`.
+La topologia minima es `global-best` y se anade `ring` como variante local.
 
-print(spec.name)
-print(spec.default_bounds)
-print(spec.known_optimum_value)
-print(value)
+## Estrategias Implementadas
+
+| Variante | Evaluacion | Actualizacion | Uso esperado |
+|---|---|---|---|
+| `V0` | secuencial | bucles Python | baseline |
+| `V1` | `ThreadPoolExecutor` | bucles Python | evaluar impacto del GIL |
+| `V2` | `ProcessPoolExecutor` + batching | bucles Python | CPU-bound mas pesado |
+| `V3` | `asyncio.gather` | bucles Python | escenarios con latencia |
+| `V4` | NumPy vectorizado | NumPy vectorizado | paralelismo implicito |
+| `V5` | `joblib.Parallel` con `loky` | bucles Python | framework de mas alto nivel para procesos y batching |
+
+Notas sobre `V5`:
+
+- por defecto usa `joblib_backend = loky`
+- se apoya en la misma API comun de evaluacion que el resto
+- en entornos restringidos puede usarse `threading` como fallback de depuracion
+
+## Scripts Principales
+
+| Script | Uso |
+|---|---|
+| `scripts/run_pso.py` | Ejecuta una corrida individual |
+| `scripts/run_benchmarks.py` | Lanza la suite de benchmarks |
+| `scripts/run_grid_search.py` | Ejecuta rejilla de hiperparametros |
+| `scripts/make_viz.py` | Genera plots y frames o GIF de una corrida |
+| `scripts/analyze_results.py` | Resume resultados ya guardados |
+| `scripts/run_dashboard.py` | Abre el dashboard local en Gradio |
+| `scripts/run_full_protocol.py` | Ejecuta el protocolo experimental completo |
+
+## Ejemplos De Uso
+
+Corrida individual:
+
+```bash
+python scripts/run_pso.py --objective sphere --dim 10 --iters 200 --seed 123
 ```
 
-## Implementation Notes
+Version vectorizada:
 
-- All functions accept `(d,)` and `(n, d)` inputs.
-- They return `float` for a single sample and `np.ndarray` for batches.
-- `get_objective(name)` is case-insensitive.
+```bash
+python scripts/run_pso.py --strategy vectorized --update-mode vectorized
+```
+
+Version `V5` con joblib:
+
+```bash
+python scripts/run_pso.py --strategy joblib --workers 4
+```
+
+Version `V5` con backend alternativo:
+
+```bash
+python scripts/run_pso.py --strategy joblib --workers 4 --joblib-backend threading
+```
+
+Benchmark reducido:
+
+```bash
+python scripts/run_benchmarks.py --config configs/benchmark_suite.yaml --max-cases 8
+```
+
+Grid search reducido:
+
+```bash
+python scripts/run_grid_search.py --config configs/grid_search.yaml --max-configs 5
+```
+
+Visualizacion de una corrida guardada:
+
+```bash
+python scripts/make_viz.py --run-dir results/runs/<run_id> --gif
+```
+
+Notas sobre visualizacion:
+
+- para animar el enjambre, la corrida original debe haberse ejecutado con
+  `--track-trajectory`
+- la animacion espacial del enjambre solo esta soportada para `d=2` o `d=3`
+- si la corrida tiene `d>3`, `make_viz.py` genera `convergence.png` y muestra
+  un aviso en lugar de fallar
+
+Analisis de resultados:
+
+```bash
+python scripts/analyze_results.py --results-root results
+```
+
+Dashboard local:
+
+```bash
+python scripts/run_dashboard.py --results-root results
+```
+
+Protocolo completo:
+
+```bash
+python scripts/run_full_protocol.py --config configs/protocol_full.yaml
+```
+
+## Persistencia
+
+Cada ejecucion guarda:
+
+- `summary.json`: configuracion, commit, hardware y metricas finales
+- `history.csv`: metricas por iteracion
+- `trajectory.npz`: trayectorias comprimidas cuando se habilita
+- `run.log`: logging estructurado
+
+Se eligio:
+
+- `JSON` para metadatos jerarquicos
+- `CSV` para series temporales faciles de abrir
+- `NPZ` para datos numericos comprimidos
+
+## Configuracion Y Reproducibilidad
+
+- todas las corridas aceptan `seed`
+- el commit Git y datos basicos de hardware se guardan automaticamente
+- los experimentos se pueden lanzar desde YAML y sobreescribir por CLI
+- `V5` se controla con `strategy = joblib`, `workers`, `batch_size` y `joblib_backend`
+- `trajectory.npz` solo aparece si activas `track_trajectory`
+
+## Tests
+
+```bash
+pytest
+```
+
+Los tests cubren:
+
+- reproducibilidad por semilla
+- politicas de limites
+- monotonicidad del mejor global
+- convergencia basica en Sphere
+- validez del registro de objetivos
+- consistencia basica del evaluador `V5`
+
+## Documentacion
+
+- `docs/final_report.md`: informe experimental detallado
+
+En la version que se suba a GitHub, el documento de `docs/` que se conservara
+sera `docs/final_report.md`. El resto de notas y documentos de estudio se
+mantienen como material local personal.
+
+## GitHub Y Artefactos
+
+El repo ya esta preparado para publicacion futura, pero todavia no se ha hecho
+`push`.
+
+Por defecto se ignoran:
+
+- `results/**`
+- `docs/**` excepto `docs/final_report.md`
+- `docs/*.pdf`
+
+La idea es versionar el codigo y la documentacion en Markdown, y dejar los
+artefactos generados como resultados locales regenerables.
+
+Para cumplir la consigna sin inflar el repositorio, se versiona tambien un
+subconjunto pequeno y representativo de resultados en `results/examples/`.
+
+Ejemplos incluidos en GitHub:
+
+- `results/examples/single_run/summary.json`
+- `results/examples/single_run/history.csv`
+- `results/examples/single_run/convergence.png`
+- `results/examples/benchmarks/benchmark_summary.csv`
+- `results/examples/benchmarks/benchmark_summary.json`
+- `results/examples/analysis/*.png`
+
+## Presentacion
+
+Para una demo clara suele funcionar bien este flujo:
+
+1. Ejecutar una corrida `V0`, una `V4` y una `V5`.
+2. Lanzar un benchmark reducido y mostrar la tabla resumen.
+3. Enseñar un `summary.json` y el `history.csv`.
+4. Abrir el GIF o frames de una corrida en 2D.
+5. Cerrar con `docs/final_report.md`.

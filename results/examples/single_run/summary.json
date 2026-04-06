@@ -1,0 +1,79 @@
+{
+  "run_id": "single_v0-loop_sphere_d10_s123_20260405_190728",
+  "timestamp_utc": "2026-04-05T19:07:29Z",
+  "objective": "sphere",
+  "strategy": "sequential",
+  "update_mode": "loop",
+  "boundary_strategy": "clamp",
+  "topology": "global",
+  "config": {
+    "objective": "sphere",
+    "dimensions": 10,
+    "swarm_size": 40,
+    "iterations": 200,
+    "inertia": 0.7298,
+    "cognitive": 1.49618,
+    "social": 1.49618,
+    "topology": "global",
+    "neighborhood_size": 3,
+    "bounds": [
+      -5.12,
+      5.12
+    ],
+    "boundary_strategy": "clamp",
+    "velocity_clamp": 0.2,
+    "tolerance": 1e-08,
+    "stagnation_iters": 60,
+    "seed": 123,
+    "strategy": "V0",
+    "update_mode": "loop",
+    "workers": 4,
+    "batch_size": 1,
+    "joblib_backend": "loky",
+    "track_trajectory": true,
+    "trajectory_stride": 1,
+    "log_every": 20,
+    "async_latency_ms": 3.0,
+    "async_jitter_ms": 1.0
+  },
+  "best_value": 8.767288575688521e-09,
+  "best_position": [
+    5.381154290117043e-05,
+    4.411885194194917e-06,
+    6.28443723722889e-05,
+    -1.9260613397297597e-05,
+    -3.2887916857533917e-06,
+    1.3492613814599069e-05,
+    1.0160234241837557e-05,
+    2.6790705308939975e-05,
+    1.586630794317606e-05,
+    1.6314918668532695e-05
+  ],
+  "iterations_completed": 185,
+  "converged": true,
+  "stop_reason": "tolerance",
+  "metrics": {
+    "final_best_fitness": 8.767288575688521e-09,
+    "auc_best_fitness": 78.48937535647347,
+    "convergence_iteration": 185,
+    "total_run_time": 0.11734399999841116,
+    "total_eval_time": 0.04427210017456673,
+    "total_update_time": 0.05615779967047274,
+    "total_overhead_time": 0.015164000622462481
+  },
+  "git": {
+    "commit": "bb9047f"
+  },
+  "system": {
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python_version": "3.11.0",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 170 Stepping 4, GenuineIntel",
+    "cpu_count": 22
+  },
+  "artifacts": {
+    "history_csv": "history.csv",
+    "summary_json": "summary.json",
+    "trajectory_npz": "trajectory.npz"
+  }
+}
