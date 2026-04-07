@@ -17,7 +17,6 @@ def _run_once(seed: int):
         seed=seed,
         track_trajectory=False,
         strategy="sequential",
-        update_mode="loop",
     )
     evaluator = build_evaluator("sequential")
     pso = PSO(

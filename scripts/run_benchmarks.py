@@ -9,7 +9,7 @@ from pso_lab.utils import build_table
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the benchmark suite across PSO strategies.")
-    parser.add_argument("--config", type=str, default="configs/benchmark_suite.yaml")
+    parser.add_argument("--config", type=str, default="configs/benchmark.yaml")
     parser.add_argument("--output-dir", type=str, default=None)
     parser.add_argument("--log-level", type=str, default="WARNING")
     parser.add_argument("--max-cases", type=int, default=None)

@@ -3,18 +3,9 @@ rosenbrock.py
 
 This module implements the Rosenbrock benchmark function.
 
-This implementation:
-    - Supports both single input (d,) and batch input (n, d).
-    - Is fully vectorized using Numpy.
-    - Can therefore be used for:
-        V0: Sequential PSO
-        V1/V2: Thread/Process parallel evaluation
-        V4: NumPy vectorized evaluation (implicit parallelism)
-        
-The function itself is stateless and purely functional.
-All orchestration logic is handled by:
-    - objectives/registry.py
-    - core/ (PSO engine)
+This implementation supports both single input `(d,)` and batch input
+`(n, d)`, which lets the same objective function work with the sequential,
+threaded, and process-based evaluators.
 """
 import numpy as np
 
@@ -35,17 +26,15 @@ def rosenbrock(x):
     Returns:
         float: Rosenbrock function value at x
     """
-    x = np.asarray(x)  # Transform input to numpy array for vectorized operations
+    x = np.asarray(x)
 
-    single_input = (x.ndim == 1) # If x only has 1 point (1D), we will add a batch dimension to unify the computation with the case where x has multiple points (2D)
+    single_input = x.ndim == 1
     if single_input:
-        x = x[None, :] # Add a batch dimension to make x shape (1, d)
+        x = x[None, :]
 
-    # We must slice along the dimension axis (axis=1), not along the batch axis.
-    xi = x[:, :-1]    # takes all rows and all columns except the last one, resulting in shape (n, d-1)
-    xnext = x[:, 1:]  # takes all rows and all columns except the first one, resulting in shape (n, d-1)
+    xi = x[:, :-1]
+    xnext = x[:, 1:]
 
-    result = np.sum(100 * (xnext - xi**2)**2 + (1 - xi)**2, axis =1)  # shape (n,)
+    result = np.sum(100 * (xnext - xi**2)**2 + (1 - xi)**2, axis=1)
 
-    # Returns a scalar when the input is a single point and an array of shape (n) when the input is multiple points
     return float(result[0]) if single_input else result

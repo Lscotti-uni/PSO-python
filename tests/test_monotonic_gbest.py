@@ -13,13 +13,12 @@ def test_global_best_history_is_monotonic_non_increasing() -> None:
         swarm_size=25,
         iterations=80,
         seed=321,
-        strategy="vectorized",
-        update_mode="vectorized",
+        strategy="sequential",
     )
     pso = PSO(
         config=config,
         objective=get_objective("sphere").fn,
-        evaluator=build_evaluator("vectorized"),
+        evaluator=build_evaluator("sequential"),
         bounds_policy=build_bounds_policy("clamp"),
         topology=build_topology("global"),
     )

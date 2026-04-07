@@ -15,20 +15,13 @@ from pso_lab.utils import configure_logging, log_kv
 
 def variant_label(config: PSOConfig) -> str:
     strategy = config.strategy.lower()
-    update_mode = config.update_mode.lower()
-    if strategy == "sequential" and update_mode == "loop":
+    if strategy == "sequential":
         return "V0"
-    if strategy == "thread" and update_mode == "loop":
+    if strategy == "thread":
         return "V1"
-    if strategy == "process" and update_mode == "loop":
+    if strategy == "process":
         return "V2"
-    if strategy == "asyncio" and update_mode == "loop":
-        return "V3"
-    if strategy == "vectorized" and update_mode == "vectorized":
-        return "V4"
-    if strategy == "joblib" and update_mode == "loop":
-        return "V5"
-    return f"{strategy}-{update_mode}"
+    return strategy
 
 
 def build_run_id(config: PSOConfig, prefix: str | None = None) -> str:
@@ -62,13 +55,9 @@ def run_single_experiment(
         config.strategy,
         workers=config.workers,
         batch_size=config.batch_size,
-        joblib_backend=config.joblib_backend,
-        seed=config.seed,
-        async_latency_ms=config.async_latency_ms,
-        async_jitter_ms=config.async_jitter_ms,
     )
     bounds_policy = build_bounds_policy(config.boundary_strategy)
-    topology = build_topology(config.topology, config.neighborhood_size)
+    topology = build_topology(config.topology)
 
     run_id = build_run_id(config, prefix=run_prefix)
     run_dir = ensure_run_dir(output_dir, run_id) if save_results else None
@@ -81,7 +70,6 @@ def run_single_experiment(
         run_id=run_id,
         objective=config.objective,
         strategy=config.strategy,
-        update_mode=config.update_mode,
         dimensions=config.dimensions,
         swarm_size=config.swarm_size,
     )
@@ -107,7 +95,6 @@ def run_single_experiment(
         config=config,
         objective_name=objective_spec.key,
         evaluator_name=evaluator.name,
-        update_mode=config.update_mode,
         boundary_strategy=bounds_policy.name,
         topology_name=topology.name,
         result=result,

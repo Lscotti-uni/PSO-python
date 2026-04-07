@@ -54,8 +54,6 @@ class PSO:
         self._validate_config()
 
     def _validate_config(self) -> None:
-        if self.config.update_mode not in {"loop", "vectorized"}:
-            raise ValueError("update_mode must be either 'loop' or 'vectorized'")
         if self.config.swarm_size < 2:
             raise ValueError("swarm_size must be at least 2")
 
@@ -169,28 +167,15 @@ class PSO:
         state.velocities = self._apply_velocity_clamp(new_velocities)
         state.positions = new_positions
 
-    def _update_vectorized(self, state: SwarmState, social_best_positions: np.ndarray) -> None:
-        r1 = self.rng.random(size=(self.config.swarm_size, self.config.dimensions))
-        r2 = self.rng.random(size=(self.config.swarm_size, self.config.dimensions))
-        cognitive = self.config.cognitive * r1 * (state.personal_best_positions - state.positions)
-        social = self.config.social * r2 * (social_best_positions - state.positions)
-        # The vectorized path keeps the same PSO equation but applies it to the
-        # whole swarm at once using NumPy array operations.
-        state.velocities = self._apply_velocity_clamp(
-            self.config.inertia * state.velocities + cognitive + social
-        )
-        state.positions = state.positions + state.velocities
-
     def _step(self, state: SwarmState) -> IterationMetrics:
         iter_start = perf_counter()
         previous_gbest = float(state.global_best_value)
 
         update_start = perf_counter()
+        # The topology decides which social leader each particle follows. With
+        # global-best, every particle is pulled toward the same best solution.
         social_best_positions = self.topology.social_best_positions(state)
-        if self.config.update_mode == "vectorized":
-            self._update_vectorized(state, social_best_positions)
-        else:
-            self._update_loop(state, social_best_positions)
+        self._update_loop(state, social_best_positions)
         # Boundary handling is delegated to a policy so the core algorithm does
         # not need to know whether we clamp, reflect, or use another strategy.
         state.positions, state.velocities = self.bounds_policy.apply(
@@ -207,6 +192,8 @@ class PSO:
 
         improved_personal = fitness < state.personal_best_values
         if np.any(improved_personal):
+            # Personal bests act as a stable archive of the best position each
+            # particle has ever seen, independent of its current position.
             state.personal_best_positions[improved_personal] = state.positions[improved_personal]
             state.personal_best_values[improved_personal] = fitness[improved_personal]
 
@@ -256,7 +243,6 @@ class PSO:
                 iteration=0,
                 best_fitness=f"{state.global_best_value:.6e}",
                 strategy=self.evaluator.name,
-                update_mode=self.config.update_mode,
             )
 
         no_improve_iters = 0
@@ -273,6 +259,8 @@ class PSO:
             else:
                 no_improve_iters += 1
 
+            # We log the first step, periodic checkpoints, and any actual
+            # improvement so long runs remain readable without losing signal.
             should_log = (
                 state.iteration == 1
                 or state.iteration % self.config.log_every == 0

@@ -1,0 +1,40 @@
+suite_name: benchmark_linux_wsl
+output_dir: results/benchmarks
+runs_output_dir: results/runs
+dimensions: [2, 10, 30]
+seeds: [11, 23, 37]
+defaults:
+  swarm_size: 40
+  iterations: 150
+  inertia: 0.7298
+  cognitive: 1.49618
+  social: 1.49618
+  topology: global
+  boundary_strategy: clamp
+  velocity_clamp: 0.20
+  tolerance: 1.0e-8  # Used only to report convergence_iteration; early stopping is disabled here.
+  enable_early_stopping: false  # Benchmarks use a fixed iteration budget for fair strategy comparisons.
+  workers: 4  # Forwarded to ThreadPoolExecutor / ProcessPoolExecutor as max_workers.
+  batch_size: 8
+  log_every: 25
+objectives:
+  - name: sphere
+    bounds: [-5.12, 5.12]
+  - name: rosenbrock
+    bounds: [-2.048, 2.048]
+  - name: rastrigin
+    bounds: [-5.12, 5.12]
+  - name: ackley
+    bounds: [-32.768, 32.768]
+strategies:
+  V0:
+    strategy: sequential
+    batch_size: 1
+  V1:
+    strategy: thread
+    batch_size: 1
+    workers: 4
+  V2:
+    strategy: process
+    batch_size: 8
+    workers: 4

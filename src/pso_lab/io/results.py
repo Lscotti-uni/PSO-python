@@ -22,7 +22,9 @@ def compute_auc(history: list[dict[str, Any]]) -> float:
     ys = np.asarray([row["best_fitness"] for row in history], dtype=float)
     if len(xs) < 2:
         return float(ys[0]) if len(ys) else 0.0
-    return float(np.trapz(ys, xs))
+    # NumPy 2.x removed trapz in favor of trapezoid, so we use the newer name
+    # to stay compatible with current Linux/WSL environments.
+    return float(np.trapezoid(ys, xs))
 
 
 def convergence_iteration(history: list[dict[str, Any]], tolerance: float) -> int | None:
@@ -38,20 +40,18 @@ def build_summary(
     config: PSOConfig,
     objective_name: str,
     evaluator_name: str,
-    update_mode: str,
     boundary_strategy: str,
     topology_name: str,
     result: PSOResult,
     root_dir: str | Path | None = None,
 ) -> dict[str, Any]:
-    # Summary JSON is the high-level artifact meant for dashboards, quick
-    # inspection, and experiment traceability.
+    # Summary JSON is the high-level artifact used for quick inspection and
+    # experiment traceability.
     return {
         "run_id": run_id,
         "timestamp_utc": datetime.utcnow().isoformat(timespec="seconds") + "Z",
         "objective": objective_name,
         "strategy": evaluator_name,
-        "update_mode": update_mode,
         "boundary_strategy": boundary_strategy,
         "topology": topology_name,
         "config": config.to_dict(),
@@ -143,6 +143,8 @@ def load_history_csv(path: str | Path) -> list[dict[str, Any]]:
         for row in reader:
             parsed: dict[str, Any] = {}
             for key, value in row.items():
+                # CSV stores everything as text, so we recover booleans and
+                # numeric types here to make downstream analysis code simpler.
                 if value in {"True", "False"}:
                     parsed[key] = value == "True"
                     continue

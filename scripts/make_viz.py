@@ -14,19 +14,22 @@ from pso_lab.viz import plot_convergence, save_gif_from_frames, save_swarm_frame
 def main() -> None:
     parser = argparse.ArgumentParser(description="Create convergence plots and swarm animations from a saved run.")
     parser.add_argument("--run-dir", type=str, required=True)
+    parser.add_argument("--output-dir", type=str, default="results/visualizations")
     parser.add_argument("--fps", type=int, default=8)
     parser.add_argument("--gif", action="store_true")
     args = parser.parse_args()
 
     run_dir = Path(args.run_dir)
+    output_dir = Path(args.output_dir) / run_dir.name
+    output_dir.mkdir(parents=True, exist_ok=True)
     summary = load_json(run_dir / "summary.json")
     history = load_history_csv(run_dir / "history.csv")
-    plot_convergence(history, run_dir / "convergence.png")
+    plot_convergence(history, output_dir / "convergence.png")
 
     dimensions = int(summary["config"]["dimensions"])
     if dimensions not in {2, 3}:
         print(
-            f"Saved convergence plot under {run_dir.resolve()}, "
+            f"Saved convergence plot under {output_dir.resolve()}, "
             f"but swarm animation is only supported for 2D or 3D runs (received d={dimensions})."
         )
         return
@@ -45,11 +48,11 @@ def main() -> None:
         best_trace=list(trajectory_payload["best_positions"]),
         history=history,
         bounds=(lower, upper),
-        output_dir=run_dir / "frames",
+        output_dir=output_dir / "frames",
     )
     if args.gif:
-        save_gif_from_frames(frame_paths, run_dir / "swarm.gif", fps=args.fps)
-    print(f"Visual assets saved under {run_dir.resolve()}")
+        save_gif_from_frames(frame_paths, output_dir / "swarm.gif", fps=args.fps)
+    print(f"Visual assets saved under {output_dir.resolve()}")
 
 
 if __name__ == "__main__":

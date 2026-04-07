@@ -3,18 +3,9 @@ ackley.py
 
 This module implements the Ackley benchmark function.
 
-This implementation:
-    - Supports both single input (d,) and batch input (n, d).
-    - Is fully vectorized using Numpy.
-    - Can therefore be used for:
-        V0: Sequential PSO
-        V1/V2: Thread/Process parallel evaluation
-        V4: NumPy vectorized evaluation (implicit parallelism)
-        
-The function itself is stateless and purely functional.
-All orchestration logic is handled by:
-    - objectives/registry.py
-    - core/ (PSO engine)
+This implementation supports both single input `(d,)` and batch input
+`(n, d)`, which lets the same objective function work with the sequential,
+threaded, and process-based evaluators.
 """
 import numpy as np
 
@@ -37,22 +28,20 @@ def ackley(x):
         float: Ackley function value at x when x has shape (d,)
         np.ndarray: Ackley function values of shape (n,) when x has shape (n, d)
     """
-    x = np.asarray(x) # Transform input to numpy array for vectorized operations
+    x = np.asarray(x)
     
-    single_input = (x.ndim == 1) # If x only has 1 point (1D), we will add a batch dimension to unify the computation with the case where x has multiple points (2D)
+    single_input = x.ndim == 1
     if single_input:
-        x = x[None, :] # Add a batch dimension to make x shape (1, d)
+        x = x[None, :]
 
-    d = x.shape[1] # Extract dimension d from the second axis of x (after ensuring x has shape (n, d))
+    d = x.shape[1]
 
-    part1 = -20 * np.exp(-0.2 * np.sqrt(np.sum(x**2, axis=1) / d))  # Average squared magnitude across d components
-    part2 = -np.exp(np.sum(np.cos(2 * np.pi * x), axis=1) / d)  # Average cosine term across d components
+    part1 = -20 * np.exp(-0.2 * np.sqrt(np.sum(x**2, axis=1) / d))
+    part2 = -np.exp(np.sum(np.cos(2 * np.pi * x), axis=1) / d)
 
     result = part1 + part2 + 20 + np.e
 
-    # Returns a scalar when the input is a single point and an array of shape (n) when the input is multiple points
     return float(result[0]) if single_input else result 
-
 
 
 

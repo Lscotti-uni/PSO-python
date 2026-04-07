@@ -1,5 +1,10 @@
-run_name: demo_single_run
+run_name: linux_wsl_single_run
 objective: sphere
+objective_bounds:
+  sphere: [-5.12, 5.12]
+  rosenbrock: [-2.048, 2.048]
+  rastrigin: [-5.12, 5.12]
+  ackley: [-32.768, 32.768]
 dimensions: 10
 swarm_size: 40
 iterations: 200
@@ -7,21 +12,17 @@ inertia: 0.7298
 cognitive: 1.49618
 social: 1.49618
 topology: global
-neighborhood_size: 3
 bounds: [-5.12, 5.12]
 boundary_strategy: clamp
 velocity_clamp: 0.20
 tolerance: 1.0e-8
 stagnation_iters: 60
+enable_early_stopping: true
 seed: 123
 strategy: sequential
-update_mode: loop
-workers: 4
+workers: 4  # Passed as max_workers to thread/process evaluators when those strategies are used.
 batch_size: 1
-joblib_backend: loky
 track_trajectory: false
 trajectory_stride: 1
 log_every: 20
-async_latency_ms: 3.0
-async_jitter_ms: 1.0
 output_dir: results/runs

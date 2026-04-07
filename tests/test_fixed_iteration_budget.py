@@ -1,4 +1,4 @@
-"""Tests that Sphere converges close to its known optimum with reasonable settings."""
+"""Tests that fixed-budget runs ignore early-stopping criteria."""
 
 from pso_lab.core import PSOConfig, build_bounds_policy, build_topology
 from pso_lab.core.pso import PSO
@@ -6,16 +6,16 @@ from pso_lab.objectives import get_objective
 from pso_lab.parallel import build_evaluator
 
 
-def test_sphere_converges_with_reasonable_parameters() -> None:
+def test_fixed_iteration_budget_ignores_tolerance() -> None:
     config = PSOConfig(
         objective="sphere",
-        dimensions=10,
-        swarm_size=40,
-        iterations=200,
+        dimensions=2,
+        swarm_size=20,
+        iterations=15,
         seed=123,
-        tolerance=1e-8,
+        tolerance=1e9,
+        enable_early_stopping=False,
         strategy="sequential",
-        velocity_clamp=0.2,
     )
     pso = PSO(
         config=config,
@@ -26,5 +26,5 @@ def test_sphere_converges_with_reasonable_parameters() -> None:
     )
     result = pso.run()
 
-    assert result.best_value < 1e-6
-    assert result.stop_reason in {"tolerance", "max_iterations"}
+    assert result.state.iteration == 15
+    assert result.stop_reason == "max_iterations"

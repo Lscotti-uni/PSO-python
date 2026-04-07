@@ -1,195 +1,241 @@
 # PSO Lab
 
-Python laboratory for Particle Swarm Optimization (PSO) with emphasis on:
+Particle Swarm Optimization (PSO) project tailored for Linux/WSL, with one
+shared core and three comparable execution variants:
 
-- maintainable architecture
-- comparison of sequential, concurrent, and parallel execution strategies
-- instrumentation and persistence
-- benchmark suites, grid search, and visualization
-- local analysis through a dashboard
+- `V0`: sequential
+- `V1`: thread-based concurrency
+- `V2`: process-based parallelism
 
-## Structure
+The repository keeps a single implementation of the algorithm and swaps only
+the fitness-evaluation strategy. The only supported topology is `global-best`,
+which matches the simplified delivery scope.
 
-```text
-.
-|-- configs/
-|-- docs/
-|-- results/
-|-- scripts/
-|-- src/pso_lab/
-|   |-- core/
-|   |-- dashboard/
-|   |-- experiments/
-|   |-- io/
-|   |-- objectives/
-|   |-- parallel/
-|   |-- utils/
-|   `-- viz/
-`-- tests/
-```
+Repository URL: `https://github.com/Lscotti-uni/PSO-python`
 
-## Installation
+## Repository Layout
+
+| Path | Purpose |
+| --- | --- |
+| `docs/architecture.md` | Architecture overview and module dependency diagram |
+| `configs/` | YAML configuration for single runs, benchmarks, and grid search |
+| `docs/design.md` | Short design document with architecture and trade-offs |
+| `notebooks/final_report.ipynb` | Narrated experimental report and analysis notebook |
+| `results/` | Saved artifacts for runs, benchmarks, grid search, and visualizations |
+| `scripts/` | Reproducible entry points required by the assignment |
+| `src/pso_lab/` | Project source code |
+| `tests/` | Unit tests for correctness and reproducibility |
+| `requirements.txt` | Runtime and validation dependencies |
+| `pyproject.toml` | Packaging metadata |
+
+## Installation On Linux / WSL
 
 ```bash
+cd /path/to/project
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 pip install -e .
 ```
 
-For development:
-
-```bash
-pip install -e .[dev]
-```
+The requirements file also includes the notebook runtime so
+`notebooks/final_report.ipynb` can be executed without extra setup.
 
 ## Architecture
 
 ```mermaid
-flowchart LR
-    S[scripts/*] --> R[experiments.runner]
-    R --> C[core.PSO]
-    R --> O[objectives.registry]
-    R --> P[parallel/* evaluators]
-    C --> B[core.bounds]
-    C --> T[core.topology]
-    C --> STOP[core.stopping]
-    R --> IO[io.results]
-    IO --> RES[(results/*)]
-    RES --> V[viz.plots]
-    RES --> D[dashboard.app]
+flowchart TD
+    subgraph EntryPoints[CLI Entry Points]
+        RP[run_pso.py]
+        RB[run_benchmarks.py]
+        RG[run_grid_search.py]
+        MV[make_viz.py]
+    end
+
+    subgraph Experiments[experiments/]
+        Runner[runner.py]
+        Bench[benchmarks.py]
+        Grid[grid_search.py]
+    end
+
+    subgraph Core[core/]
+        PSO[PSO engine]
+        Bounds[Bounds policy]
+        Topology[Global-best topology]
+        Stop[Stopping rules]
+        Config[PSOConfig]
+    end
+
+    subgraph Domain[objectives/ and parallel/]
+        Objectives[Objective registry]
+        Eval[Evaluators V0/V1/V2]
+    end
+
+    subgraph Persistence[persistence and output]
+        IO[io/results.py]
+        Results[(results/)]
+        Viz[viz/plots.py]
+        Report[notebooks/final_report.ipynb]
+    end
+
+    RP --> Runner
+    RB --> Bench
+    RG --> Grid
+    MV --> Viz
+
+    Bench --> Runner
+    Grid --> Runner
+
+    Runner --> Config
+    Runner --> PSO
+    Runner --> Objectives
+    Runner --> Eval
+    Runner --> IO
+
+    PSO --> Bounds
+    PSO --> Topology
+    PSO --> Stop
+
+    IO --> Results
+    Results --> Viz
+    Results --> Report
 ```
 
-The project keeps a single PSO core and swaps only interchangeable components:
+Main design decisions:
 
-- evaluation strategy
-- update mode
-- boundary policy
-- social topology
+- One shared PSO core to avoid duplicated logic.
+- `clamp` and `reflect` as explicit boundary policies.
+- Fixed `global-best` topology.
+- YAML-based configuration with CLI overrides.
+- Objective bounds are defined in YAML instead of being hardcoded in scripts.
+- Early stopping stays available for single runs, but benchmarks and grid
+  search use fixed iteration budgets for fair comparisons.
+- Persistence through `JSON`, `CSV`, and `NPZ`.
 
-The default boundary policy is `clamp`, with `reflect` available as an
-alternative. The baseline topology is `global-best`, and `ring` is included as
-a local topology variant.
+For a dedicated architecture handoff document, see
+`docs/architecture.md`.
 
-## Implemented Strategies
+## Implemented Functionality
 
-| Variant | Evaluation | Update | Expected use |
-|---|---|---|---|
-| `V0` | sequential | Python loops | baseline |
-| `V1` | `ThreadPoolExecutor` | Python loops | illustrate GIL impact |
-| `V2` | `ProcessPoolExecutor` with batching | Python loops | heavier CPU-bound evaluation |
-| `V3` | `asyncio.gather` | Python loops | latency-oriented scenarios |
-| `V4` | NumPy vectorized | NumPy vectorized | implicit parallelism |
-| `V5` | `joblib.Parallel` with `loky` | Python loops | higher-level process-style backend |
+- Continuous minimization in arbitrary dimension.
+- Per-dimension box constraints through explicit boundary policies.
+- Standard benchmarks: `Sphere`, `Rosenbrock`, `Rastrigin`, `Ackley`.
+- Reproducible benchmark dimensions such as `2`, `10`, and `30`.
+- Structured logging and per-iteration instrumentation.
+- Configurable grid search over `w`, `c1`, `c2`, swarm size, and iterations
+  across `V0`, `V1`, and `V2`.
+- 2D and 3D visualization with convergence plots and swarm animations.
+- Structured persistence with seed, commit hash, and system metadata.
 
-Notes about `V5`:
+## Required Scripts
 
-- the default backend is `joblib_backend = loky`
-- it uses the same common evaluation API as the other strategies
-- `threading` can be used as a fallback backend in restricted environments
+- `scripts/run_pso.py`: single run.
+- `scripts/run_benchmarks.py`: benchmark suite.
+- `scripts/run_grid_search.py`: reproducible grid search.
+- `scripts/make_viz.py`: plots and animations from saved runs.
 
-## Main Scripts
+## Parallel Strategies
 
-| Script | Purpose |
-|---|---|
-| `scripts/run_pso.py` | Execute a single PSO run |
-| `scripts/run_benchmarks.py` | Execute the benchmark suite |
-| `scripts/run_grid_search.py` | Execute hyperparameter grid search |
-| `scripts/make_viz.py` | Generate plots and frames or GIFs from a saved run |
-| `scripts/analyze_results.py` | Summarize previously saved results |
-| `scripts/run_dashboard.py` | Launch the local Gradio dashboard |
-| `scripts/run_full_protocol.py` | Execute the full experimental protocol |
+| Variant | Backend | Intended lesson | Expected trade-off |
+| --- | --- | --- | --- |
+| `V0` | Sequential evaluation | Reference baseline | No parallel overhead, but no concurrency |
+| `V1` | `ThreadPoolExecutor` | Show the impact of threads under the GIL | Cheap orchestration, but CPU-bound code may not speed up |
+| `V2` | `ProcessPoolExecutor` | Show true parallel evaluation for heavier workloads | Better CPU scaling, but higher IPC and serialization cost |
+
+The core PSO implementation is shared across all variants. Only the
+fitness-evaluation strategy changes, which keeps optimization quality
+comparable while exposing timing differences.
+
+`V2` also supports batching through the `batch_size` parameter so process-based
+evaluation does not submit one particle per task unnecessarily.
+
+## Logging And Observability
+
+Each run records:
+
+- total runtime
+- fitness-evaluation time
+- particle-update time
+- estimated parallel overhead
+- best fitness per iteration
+- convergence-related metrics
+
+Structured logs are written to `run.log`, while machine-readable artifacts are
+stored in `summary.json`, `history.csv`, and optionally `trajectory.npz`.
+
+## Reproducing Results
+
+| Goal | Command |
+| --- | --- |
+| Run unit tests | `python3 -m pytest -q` |
+| Single PSO run | `python3 scripts/run_pso.py --config configs/pso.yaml` |
+| Benchmark suite | `python3 scripts/run_benchmarks.py --config configs/benchmark.yaml` |
+| Grid search across strategies | `python3 scripts/run_grid_search.py --config configs/grid_search.yaml` |
+| Create visualization | `python3 scripts/make_viz.py --run-dir results/runs/<run_id> --gif` |
+| Open the narrated report notebook | `jupyter notebook notebooks/final_report.ipynb` |
+
+For fair comparisons, benchmarks and grid search run with fixed iteration
+budgets. Single runs can still use early stopping.
 
 ## Usage Examples
 
 Single run:
 
 ```bash
-python scripts/run_pso.py --objective sphere --dim 10 --iters 200 --seed 123
+python scripts/run_pso.py --config configs/pso.yaml --objective sphere --dim 10 --seed 123
 ```
 
-Vectorized variant:
+Benchmark suite:
 
 ```bash
-python scripts/run_pso.py --strategy vectorized --update-mode vectorized
+python scripts/run_benchmarks.py --config configs/benchmark.yaml
 ```
 
-`V5` with joblib:
+Grid search:
 
 ```bash
-python scripts/run_pso.py --strategy joblib --workers 4
+python scripts/run_grid_search.py --config configs/grid_search.yaml --top-n 10
 ```
 
-`V5` with an alternative backend:
+Visualization:
 
 ```bash
-python scripts/run_pso.py --strategy joblib --workers 4 --joblib-backend threading
-```
-
-Reduced benchmark suite:
-
-```bash
-python scripts/run_benchmarks.py --config configs/benchmark_suite.yaml --max-cases 8
-```
-
-Reduced grid search:
-
-```bash
-python scripts/run_grid_search.py --config configs/grid_search.yaml --max-configs 5
-```
-
-Visualization for a saved run:
-
-```bash
+python scripts/run_pso.py --config configs/pso.yaml --objective sphere --dim 2 --track-trajectory
 python scripts/make_viz.py --run-dir results/runs/<run_id> --gif
 ```
 
-Visualization notes:
-
-- to animate the swarm, the original run must be executed with
-  `--track-trajectory`
-- spatial swarm animation is supported only for `d=2` or `d=3`
-- for `d>3`, `make_viz.py` generates `convergence.png` and prints a warning
-  instead of failing
-
-Result analysis:
-
-```bash
-python scripts/analyze_results.py --results-root results
-```
-
-Local dashboard:
-
-```bash
-python scripts/run_dashboard.py --results-root results
-```
-
-Full protocol:
-
-```bash
-python scripts/run_full_protocol.py --config configs/protocol_full.yaml
-```
+If the run dimension is not `2` or `3`, `make_viz.py` still generates
+`convergence.png`, but it skips swarm animation frames.
 
 ## Persistence
 
-Each run stores:
+Each individual run stores:
 
-- `summary.json`: configuration, commit, hardware, and final metrics
-- `history.csv`: per-iteration metrics
-- `trajectory.npz`: compressed trajectories when enabled
-- `run.log`: structured logging
+- `summary.json`: configuration, seed, commit, system, and final metrics.
+- `history.csv`: per-iteration metrics.
+- `trajectory.npz`: compressed trajectory, when enabled.
+- `run.log`: structured logging output.
 
-Chosen formats:
+The `results/` directory is intentionally reduced to:
 
-- `JSON` for hierarchical metadata
-- `CSV` for time series that are easy to inspect
-- `NPZ` for compressed numeric arrays
+- `results/benchmarks`
+- `results/grid_search`
+- `results/runs`
+- `results/visualizations`
 
-## Configuration And Reproducibility
+The full `results/` directory is generated automatically by the scripts and is
+not versioned by default. This keeps the repository lightweight because full
+benchmark and grid-search outputs can become very large.
 
-- every run accepts a `seed`
-- Git commit information and basic hardware metadata are stored automatically
-- experiments can be launched from YAML and overridden from the CLI
-- `V5` is controlled through `strategy = joblib`, `workers`, `batch_size`, and
-  `joblib_backend`
-- `trajectory.npz` is generated only when `track_trajectory` is enabled
+## Analysis Notebook
+
+Post-run analysis is centralized in:
+
+- `notebooks/final_report.ipynb`
+
+The notebook builds the Cartesian product of experimental cases, loads the
+saved artifacts, and produces summary tables, convergence plots, boxplots, and
+speedup comparisons.
 
 ## Tests
 
@@ -197,41 +243,10 @@ Chosen formats:
 pytest
 ```
 
-The test suite covers:
+The current test suite covers:
 
 - seed reproducibility
-- boundary policies
-- monotonic global-best evolution
-- basic convergence on Sphere
-- objective-registry correctness
-- basic `V5` evaluator consistency
-
-## Documentation
-
-- `docs/final_report.md`: detailed experimental report
-
-Within `docs/`, the repository tracks only `docs/final_report.md`. Personal
-study notes and local PDF exports remain outside version control.
-
-## GitHub And Artifacts
-
-The repository tracks source code, configuration, tests, and a small subset of
-result artifacts.
-
-Ignored by default:
-
-- `results/**`
-- `docs/**` except `docs/final_report.md`
-- `docs/*.pdf`
-
-To satisfy the project requirements without turning the repository into a large
-artifact dump, a small representative subset is versioned in `results/examples/`.
-
-Tracked examples:
-
-- `results/examples/single_run/summary.json`
-- `results/examples/single_run/history.csv`
-- `results/examples/single_run/convergence.png`
-- `results/examples/benchmarks/benchmark_summary.csv`
-- `results/examples/benchmarks/benchmark_summary.json`
-- `results/examples/analysis/*.png`
+- boundary handling
+- monotonic global-best behavior
+- convergence on Sphere
+- evaluator consistency across V0, V1, and V2

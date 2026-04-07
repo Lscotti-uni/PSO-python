@@ -66,6 +66,8 @@ def save_swarm_frames(
         if dimensions == 2:
             ax_swarm = fig.add_subplot(1, 2, 1)
             xx, yy, zz = contour
+            # In 2D we can overlay the swarm on the objective landscape, which
+            # makes the search dynamics much easier to interpret visually.
             ax_swarm.contourf(xx, yy, zz, levels=30, cmap="viridis", alpha=0.85)
             ax_swarm.scatter(positions[:, 0], positions[:, 1], color="#ee9b00", s=30, label="Particles")
             ax_swarm.scatter(
@@ -99,6 +101,8 @@ def save_swarm_frames(
             ax_swarm.set_zlim(bounds[0][2], bounds[1][2])
 
         ax_curve = fig.add_subplot(1, 2, 2)
+        # The right panel mirrors the optimizer history so each frame shows
+        # both spatial movement and optimization progress at the same time.
         iterations = [row["iteration"] for row in history[: frame_idx + 1]]
         best = [row["best_fitness"] for row in history[: frame_idx + 1]]
         ax_curve.plot(iterations, best, color="#005f73", linewidth=2)

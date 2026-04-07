@@ -33,8 +33,11 @@ def run_grid_search(
     output_root.mkdir(parents=True, exist_ok=True)
 
     defaults = config_data.get("defaults", {})
-    strategy_overrides = config_data.get("strategy", {})
+    strategies = config_data.get("strategies")
+    if strategies is None:
+        strategies = {"grid": config_data.get("strategy", {})}
     objective = config_data["objective"]
+    bounds = config_data.get("bounds")
     dimensions = config_data.get("dimensions", [10])
     seeds = config_data.get("seeds", [11, 23, 37])
     metric = config_data.get("metric", "mean_best_value")
@@ -43,65 +46,74 @@ def run_grid_search(
     raw_rows: list[dict[str, Any]] = []
     aggregated_rows: list[dict[str, Any]] = []
 
-    for config_idx, params in enumerate(search_space, start=1):
-        if max_configs is not None and config_idx > max_configs:
-            break
+    for variant, strategy_overrides in strategies.items():
+        for config_idx, params in enumerate(search_space, start=1):
+            if max_configs is not None and config_idx > max_configs:
+                break
 
-        bucket: list[dict[str, Any]] = []
-        for dimension in dimensions:
-            for seed in seeds:
-                merged = deep_merge(defaults, strategy_overrides)
-                merged = deep_merge(
-                    merged,
-                    params,
-                )
-                merged = deep_merge(
-                    merged,
-                    {
-                        "objective": objective,
+            bucket: list[dict[str, Any]] = []
+            for dimension in dimensions:
+                for seed in seeds:
+                    # Each hyperparameter combination is evaluated across all
+                    # requested dimensions and seeds for the current strategy.
+                    merged = deep_merge(defaults, strategy_overrides)
+                    merged = deep_merge(
+                        merged,
+                        params,
+                    )
+                    merged = deep_merge(
+                        merged,
+                        {
+                            "objective": objective,
+                            "dimensions": dimension,
+                            "seed": seed,
+                        },
+                    )
+                    if bounds is not None:
+                        merged["bounds"] = bounds
+                    config = PSOConfig.from_mapping(merged)
+                    run_info = run_single_experiment(
+                        config,
+                        output_dir=config_data.get("runs_output_dir", "results/runs"),
+                        run_prefix=variant,
+                        log_level=log_level,
+                        save_results=True,
+                    )
+                    summary = run_info["summary"]
+                    row = {
+                        "variant": variant,
+                        "config_index": config_idx,
                         "dimensions": dimension,
                         "seed": seed,
-                    },
-                )
-                config = PSOConfig.from_mapping(merged)
-                run_info = run_single_experiment(
-                    config,
-                    output_dir=output_root / "runs",
-                    run_prefix="grid",
-                    log_level=log_level,
-                    save_results=True,
-                )
-                summary = run_info["summary"]
-                row = {
+                        "best_value": summary["best_value"],
+                        "total_time": summary["metrics"]["total_run_time"],
+                        "auc": summary["metrics"]["auc_best_fitness"],
+                        "convergence_iteration": summary["metrics"]["convergence_iteration"]
+                        if summary["metrics"]["convergence_iteration"] is not None
+                        else config.iterations,
+                        "run_id": run_info["run_id"],
+                        "run_dir": run_info["run_dir"],
+                        **params,
+                    }
+                    raw_rows.append(row)
+                    bucket.append(row)
+
+            aggregated_rows.append(
+                {
+                    "variant": variant,
                     "config_index": config_idx,
-                    "dimensions": dimension,
-                    "seed": seed,
-                    "best_value": summary["best_value"],
-                    "total_time": summary["metrics"]["total_run_time"],
-                    "auc": summary["metrics"]["auc_best_fitness"],
-                    "convergence_iteration": summary["metrics"]["convergence_iteration"]
-                    if summary["metrics"]["convergence_iteration"] is not None
-                    else config.iterations,
-                    "run_id": run_info["run_id"],
-                    "run_dir": run_info["run_dir"],
+                    "runs": len(bucket),
+                    "mean_best_value": mean(item["best_value"] for item in bucket),
+                    "std_best_value": pstdev(item["best_value"] for item in bucket) if len(bucket) > 1 else 0.0,
+                    "mean_total_time": mean(item["total_time"] for item in bucket),
+                    "mean_auc": mean(item["auc"] for item in bucket),
+                    "mean_convergence_iteration": mean(item["convergence_iteration"] for item in bucket),
                     **params,
                 }
-                raw_rows.append(row)
-                bucket.append(row)
+            )
 
-        aggregated_rows.append(
-            {
-                "config_index": config_idx,
-                "runs": len(bucket),
-                "mean_best_value": mean(item["best_value"] for item in bucket),
-                "std_best_value": pstdev(item["best_value"] for item in bucket) if len(bucket) > 1 else 0.0,
-                "mean_total_time": mean(item["total_time"] for item in bucket),
-                "mean_auc": mean(item["auc"] for item in bucket),
-                "mean_convergence_iteration": mean(item["convergence_iteration"] for item in bucket),
-                **params,
-            }
-        )
-
+    # The ranking metric is configurable, but every row still keeps the full
+    # summary so downstream analysis can compare several criteria later.
     aggregated_rows.sort(key=lambda row: row.get(metric, row["mean_best_value"]))
     save_rows_csv(output_root / "grid_search_runs.csv", raw_rows)
     save_rows_csv(output_root / "grid_search_summary.csv", aggregated_rows)

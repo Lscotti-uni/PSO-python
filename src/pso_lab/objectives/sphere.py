@@ -3,18 +3,9 @@ sphere.py
 
 This module implements the Sphere benchmark function.
 
-This implementation:
-    - Supports both single input (d,) and batch input (n, d).
-    - Is fully vectorized using Numpy.
-    - Can therefore be used for:
-        V0: Sequential PSO
-        V1/V2: Thread/Process parallel evaluation
-        V4: NumPy vectorized evaluation (implicit parallelism)
-        
-The function itself is stateless and purely functional.
-All orchestration logic is handled by:
-    - objectives/registry.py
-    - core/ (PSO engine)
+This implementation supports both single input `(d,)` and batch input
+`(n, d)`, which lets the same objective function work with the sequential,
+threaded, and process-based evaluators.
 """
 import numpy as np
 
@@ -35,15 +26,12 @@ def sphere(x):
     Returns:
         float: Sphere function value at x
     """
-    x = np.asarray(x) # Transform input to numpy array for vectorized operations
+    x = np.asarray(x)
 
-    single_input = (x.ndim == 1) # If x only has 1 point (1D), we will add a batch dimension to unify the computation with the case where x has multiple points (2D)
+    single_input = x.ndim == 1
     if single_input:
-        x = x[None, :] # Add a batch dimension to make x shape (1, d)
-
-    d = x.shape[1] # Extract dimension d from the second axis of x (after ensuring x has shape (n, d))
+        x = x[None, :]
 
     result = np.sum(x**2, axis=1)
 
-    # Returns a scalar when the input is a single point and an array of shape (n) when the input is multiple points   
     return float(result[0]) if single_input else result

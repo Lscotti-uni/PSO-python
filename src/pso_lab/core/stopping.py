@@ -10,6 +10,8 @@ def reached_tolerance(best_value: float, tolerance: float) -> bool:
 
 
 def should_stop(best_value: float, no_improve_iters: int, config: PSOConfig) -> str | None:
+    if not config.enable_early_stopping:
+        return None
     if reached_tolerance(best_value, config.tolerance):
         return "tolerance"
     if config.stagnation_iters and no_improve_iters >= config.stagnation_iters:

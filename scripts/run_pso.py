@@ -10,16 +10,14 @@ from pso_lab.utils import build_table
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run a single PSO optimisation experiment.")
-    parser.add_argument("--config", type=str, default="configs/pso_default.yaml")
+    parser.add_argument("--config", type=str, default="configs/pso.yaml")
     parser.add_argument("--objective", type=str, default=None)
     parser.add_argument("--dim", type=int, default=None)
     parser.add_argument("--swarm-size", type=int, default=None)
     parser.add_argument("--iters", type=int, default=None)
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--strategy", type=str, default=None)
-    parser.add_argument("--update-mode", type=str, default=None)
     parser.add_argument("--workers", type=int, default=None)
-    parser.add_argument("--joblib-backend", type=str, default=None)
     parser.add_argument("--track-trajectory", action="store_true")
     parser.add_argument("--output-dir", type=str, default=None)
     parser.add_argument("--log-level", type=str, default="WARNING")
@@ -39,14 +37,15 @@ def main() -> None:
         overrides["seed"] = args.seed
     if args.strategy is not None:
         overrides["strategy"] = args.strategy
-    if args.update_mode is not None:
-        overrides["update_mode"] = args.update_mode
     if args.workers is not None:
         overrides["workers"] = args.workers
-    if args.joblib_backend is not None:
-        overrides["joblib_backend"] = args.joblib_backend
     if args.track_trajectory:
         overrides["track_trajectory"] = True
+
+    objective_name = overrides.get("objective", base.get("objective"))
+    objective_bounds = base.get("objective_bounds", {})
+    if "bounds" not in overrides and isinstance(objective_bounds, dict) and objective_name in objective_bounds:
+        overrides["bounds"] = objective_bounds[objective_name]
 
     config = PSOConfig.from_mapping(deep_merge(base, overrides))
     output_dir = args.output_dir or base.get("output_dir", "results/runs")
@@ -67,7 +66,6 @@ def main() -> None:
             {
                 "objective": summary["objective"],
                 "strategy": summary["strategy"],
-                "update_mode": summary["update_mode"],
                 "dimensions": summary["config"]["dimensions"],
                 "best_value": summary["best_value"],
                 "iterations": summary["iterations_completed"],
@@ -75,7 +73,7 @@ def main() -> None:
                 "total_time": summary["metrics"]["total_run_time"],
             }
         ],
-        ["objective", "strategy", "update_mode", "dimensions", "best_value", "iterations", "stop_reason", "total_time"],
+        ["objective", "strategy", "dimensions", "best_value", "iterations", "stop_reason", "total_time"],
     )
     timing_table = build_table(
         [

@@ -60,21 +60,27 @@ def run_benchmark_suite(
 
     for variant, variant_overrides in strategies.items():
         for objective in objectives:
+            objective_name = objective["name"] if isinstance(objective, dict) else objective
+            objective_bounds = objective.get("bounds") if isinstance(objective, dict) else None
             for dimension in dimensions:
                 for seed in seeds:
+                    # Each benchmark case is built from shared defaults plus the
+                    # current variant, objective, dimension, and seed.
                     merged = deep_merge(defaults, variant_overrides)
                     merged = deep_merge(
                         merged,
                         {
-                            "objective": objective,
+                            "objective": objective_name,
                             "dimensions": dimension,
                             "seed": seed,
                         },
                     )
+                    if objective_bounds is not None:
+                        merged["bounds"] = objective_bounds
                     config = PSOConfig.from_mapping(merged)
                     run_info = run_single_experiment(
                         config,
-                        output_dir=output_root / "runs",
+                        output_dir=suite.get("runs_output_dir", "results/runs"),
                         run_prefix=variant,
                         log_level=log_level,
                         save_results=True,
@@ -83,7 +89,7 @@ def run_benchmark_suite(
                     raw_rows.append(
                         {
                             "variant": variant,
-                            "objective": objective,
+                            "objective": objective_name,
                             "dimensions": dimension,
                             "seed": seed,
                             "best_value": summary["best_value"],
@@ -98,6 +104,8 @@ def run_benchmark_suite(
                     )
                     case_counter += 1
                     if max_cases is not None and case_counter >= max_cases:
+                        # Early-exit mode is useful for smoke tests and quick
+                        # classroom demos without changing the benchmark YAML.
                         aggregated = aggregate_benchmark_rows(raw_rows)
                         save_rows_csv(output_root / "benchmark_runs.csv", raw_rows)
                         save_rows_csv(output_root / "benchmark_summary.csv", aggregated)

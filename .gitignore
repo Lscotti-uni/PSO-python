@@ -206,13 +206,6 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# Local generated artifacts
-docs/**
-!docs/
-!docs/final_report.md
-docs/*.pdf
-results/**
-!results/
-!results/README.md
-!results/examples/
-!results/examples/**
+# Project-specific generated artifacts
+docs/**/*.pdf
+results/

@@ -27,6 +27,7 @@ def main() -> None:
     table = build_table(
         best_rows,
         [
+            "variant",
             "config_index",
             "mean_best_value",
             "mean_total_time",
@@ -36,7 +37,6 @@ def main() -> None:
             "cognitive",
             "social",
             "swarm_size",
-            "topology",
         ],
     )
     print("\nGrid search ranking\n")
