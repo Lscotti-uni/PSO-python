@@ -6,3 +6,8 @@ Pillow>=10.0
 prettytable>=3.10
 PyYAML>=6.0
 pytest>=8.0
+# Optional but used by bonus features (V5 evaluator, SciPy baselines, dashboard).
+# Skip these if you do not need the corresponding component.
+joblib>=1.3
+scipy>=1.10
+gradio>=4.0

@@ -1,4 +1,4 @@
-search_name: reduced_grid_linux_wsl
+search_name: full_grid_pso
 output_dir: results/grid_search
 runs_output_dir: results/runs
 objective: sphere
@@ -23,8 +23,16 @@ strategies:
     batch_size: 1
   V2:
     strategy: process
-    workers: 4  # Passed as max_workers to the process-based evaluator.
+    workers: 4
     batch_size: 8
+  V3:
+    strategy: async
+    workers: 4
+    batch_size: 4
+  V4:
+    strategy: vectorized
+    batch_size: 1
+    update_mode: vectorized
 search_space:
   inertia: [0.50, 0.7298, 0.90]
   cognitive: [1.20, 1.49618, 1.80]

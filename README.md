@@ -1,15 +1,19 @@
 # PSO Lab
 
 Particle Swarm Optimization (PSO) project tailored for Linux/WSL, with one
-shared core and three comparable execution variants:
+shared core and six interchangeable execution variants:
 
-- `V0`: sequential
-- `V1`: thread-based concurrency
-- `V2`: process-based parallelism
+- `V0`: sequential baseline
+- `V1`: thread-based concurrency (`ThreadPoolExecutor`)
+- `V2`: process-based parallelism (`ProcessPoolExecutor`)
+- `V3`: cooperative concurrency (`asyncio` + `run_in_executor`)
+- `V4`: NumPy vectorisation across the full swarm
+- `V5`: `joblib.Parallel` with selectable backend (bonus)
 
-The repository keeps a single implementation of the algorithm and swaps only
-the fitness-evaluation strategy. The only supported topology is `global-best`,
-which matches the simplified delivery scope.
+Three neighbourhood topologies are available: `global`, `ring`, and
+`von_neumann`. Three SciPy baselines (`differential_evolution`,
+`dual_annealing`, `L-BFGS-B`) provide an external reference, and a Gradio
+dashboard offers an interactive playground.
 
 Repository URL: `https://github.com/Lscotti-uni/PSO-python`
 
@@ -68,7 +72,14 @@ flowchart TD
 
     subgraph Domain[objectives/ and parallel/]
         Objectives[Objective registry]
-        Eval[Evaluators V0/V1/V2]
+        UseCase[Inverted pendulum PID]
+        Eval[Evaluators V0/V1/V2/V3/V4/V5]
+        Topo[Topologies global/ring/von_neumann]
+    end
+
+    subgraph Extras[bonuses]
+        Baselines[scipy baselines]
+        Dashboard[Gradio dashboard]
     end
 
     subgraph Persistence[persistence and output]
@@ -105,12 +116,15 @@ Main design decisions:
 
 - One shared PSO core to avoid duplicated logic.
 - `clamp` and `reflect` as explicit boundary policies.
-- Fixed `global-best` topology.
+- Three pluggable topologies (`global`, `ring`, `von_neumann`).
 - YAML-based configuration with CLI overrides.
 - Objective bounds are defined in YAML instead of being hardcoded in scripts.
+- Per-dimension bounds supported (used by the inverted-pendulum use case).
 - Early stopping stays available for single runs, but benchmarks and grid
   search use fixed iteration budgets for fair comparisons.
 - Persistence through `JSON`, `CSV`, and `NPZ`.
+- Optional dependencies (`joblib`, `scipy`, `gradio`) are imported lazily so
+  the core project keeps running without them.
 
 For a dedicated architecture handoff document, see
 `docs/architecture.md`.
@@ -130,9 +144,12 @@ For a dedicated architecture handoff document, see
 ## Required Scripts
 
 - `scripts/run_pso.py`: single run.
-- `scripts/run_benchmarks.py`: benchmark suite.
-- `scripts/run_grid_search.py`: reproducible grid search.
+- `scripts/run_benchmarks.py`: benchmark suite (V0–V5).
+- `scripts/run_grid_search.py`: 3×3×3 hyperparameter grid across strategies.
 - `scripts/make_viz.py`: plots and animations from saved runs.
+- `scripts/run_use_case_pendulum.py`: tune the inverted-pendulum PID controller.
+- `scripts/run_scipy_baseline.py`: run SciPy baselines on any registered objective.
+- `scripts/run_dashboard.py`: launch the Gradio dashboard (bonus).
 
 ## Parallel Strategies
 
@@ -141,13 +158,17 @@ For a dedicated architecture handoff document, see
 | `V0` | Sequential evaluation | Reference baseline | No parallel overhead, but no concurrency |
 | `V1` | `ThreadPoolExecutor` | Show the impact of threads under the GIL | Cheap orchestration, but CPU-bound code may not speed up |
 | `V2` | `ProcessPoolExecutor` | Show true parallel evaluation for heavier workloads | Better CPU scaling, but higher IPC and serialization cost |
+| `V3` | `asyncio` + `run_in_executor` | Cooperative concurrency for I/O-bound or latency-laden objectives | Good when objectives wait on I/O, near-zero gain on pure CPU work |
+| `V4` | NumPy vectorisation (whole-swarm call) | Exploit BLAS/SIMD for objectives that naturally support 2D inputs | Fastest single-process option, but limited by single-core memory bandwidth |
+| `V5` | `joblib.Parallel` (loky/threading/mp) | Bonus: convenient parallelism with selectable backend | Trade-offs depend on backend; needs optional `joblib` dependency |
 
 The core PSO implementation is shared across all variants. Only the
 fitness-evaluation strategy changes, which keeps optimization quality
 comparable while exposing timing differences.
 
-`V2` also supports batching through the `batch_size` parameter so process-based
-evaluation does not submit one particle per task unnecessarily.
+V2 and V5 support batching through `batch_size`; V4 always processes the whole
+swarm in a single NumPy call. V3 exposes `async_latency_ms` / `async_jitter_ms`
+to model I/O-style objectives without writing an actual async backend.
 
 ## Logging And Observability
 
@@ -169,8 +190,11 @@ stored in `summary.json`, `history.csv`, and optionally `trajectory.npz`.
 | --- | --- |
 | Run unit tests | `python3 -m pytest -q` |
 | Single PSO run | `python3 scripts/run_pso.py --config configs/pso.yaml` |
-| Benchmark suite | `python3 scripts/run_benchmarks.py --config configs/benchmark.yaml` |
+| Benchmark suite (V0–V5) | `python3 scripts/run_benchmarks.py --config configs/benchmark.yaml` |
 | Grid search across strategies | `python3 scripts/run_grid_search.py --config configs/grid_search.yaml` |
+| Inverted-pendulum PID tuning | `python3 scripts/run_use_case_pendulum.py --config configs/use_case_pendulum.yaml` |
+| SciPy baselines | `python3 scripts/run_scipy_baseline.py --objective sphere --dim 10` |
+| Gradio dashboard (bonus) | `python3 scripts/run_dashboard.py` |
 | Create visualization | `python3 scripts/make_viz.py --run-dir results/runs/<run_id> --gif` |
 | Open the narrated report notebook | `jupyter notebook notebooks/final_report.ipynb` |
 
@@ -249,4 +273,7 @@ The current test suite covers:
 - boundary handling
 - monotonic global-best behavior
 - convergence on Sphere
-- evaluator consistency across V0, V1, and V2
+- evaluator consistency across V0, V1, V2, V3, V4, and V5
+- topology behaviour for `global`, `ring`, and `von_neumann`
+- the inverted-pendulum use case (registry wiring, baseline stability, batched cost)
+- SciPy baselines smoke tests (`scipy` is an optional dependency)

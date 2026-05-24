@@ -142,6 +142,10 @@ class PSO:
         return state, metrics
 
     def _update_loop(self, state: SwarmState, social_best_positions: np.ndarray) -> None:
+        if self.config.update_mode.strip().lower() == "vectorized":
+            self._update_vectorized(state, social_best_positions)
+            return
+
         new_positions = np.empty_like(state.positions)
         new_velocities = np.empty_like(state.velocities)
 
@@ -166,6 +170,18 @@ class PSO:
 
         state.velocities = self._apply_velocity_clamp(new_velocities)
         state.positions = new_positions
+
+    def _update_vectorized(self, state: SwarmState, social_best_positions: np.ndarray) -> None:
+        # Whole-swarm NumPy update: same math as the loop, but evaluated as one
+        # broadcasted expression to exploit BLAS-friendly memory access.
+        shape = state.positions.shape
+        r1 = self.rng.random(shape)
+        r2 = self.rng.random(shape)
+        cognitive = self.config.cognitive * r1 * (state.personal_best_positions - state.positions)
+        social = self.config.social * r2 * (social_best_positions - state.positions)
+        new_velocities = self.config.inertia * state.velocities + cognitive + social
+        state.velocities = self._apply_velocity_clamp(new_velocities)
+        state.positions = state.positions + state.velocities
 
     def _step(self, state: SwarmState) -> IterationMetrics:
         iter_start = perf_counter()

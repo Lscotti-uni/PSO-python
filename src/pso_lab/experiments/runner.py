@@ -14,14 +14,16 @@ from pso_lab.utils import configure_logging, log_kv
 
 
 def variant_label(config: PSOConfig) -> str:
-    strategy = config.strategy.lower()
-    if strategy == "sequential":
-        return "V0"
-    if strategy == "thread":
-        return "V1"
-    if strategy == "process":
-        return "V2"
-    return strategy
+    strategy = config.strategy.strip().lower()
+    mapping = {
+        "sequential": "V0", "seq": "V0", "v0": "V0",
+        "thread": "V1", "threading": "V1", "threads": "V1", "v1": "V1",
+        "process": "V2", "multiprocessing": "V2", "processes": "V2", "v2": "V2",
+        "async": "V3", "asyncio": "V3", "v3": "V3",
+        "vectorized": "V4", "vector": "V4", "numpy": "V4", "v4": "V4",
+        "joblib": "V5", "v5": "V5",
+    }
+    return mapping.get(strategy, strategy)
 
 
 def build_run_id(config: PSOConfig, prefix: str | None = None) -> str:
@@ -50,14 +52,22 @@ def run_single_experiment(
     objective_spec = get_objective(config.objective)
     if config.bounds == (-5.12, 5.12) and objective_spec.default_bounds != (-5.12, 5.12):
         config.bounds = objective_spec.default_bounds
+    if objective_spec.fixed_dimensions is not None:
+        # Use cases (e.g. pendulum PID) have a meaningful dimensionality and
+        # cannot be evaluated at arbitrary dim — silently pin it.
+        config.dimensions = objective_spec.fixed_dimensions
 
     evaluator = build_evaluator(
         config.strategy,
         workers=config.workers,
         batch_size=config.batch_size,
+        async_latency_ms=config.async_latency_ms,
+        async_jitter_ms=config.async_jitter_ms,
+        joblib_backend=config.joblib_backend,
+        seed=config.seed,
     )
     bounds_policy = build_bounds_policy(config.boundary_strategy)
-    topology = build_topology(config.topology)
+    topology = build_topology(config.topology, neighborhood_size=config.neighborhood_size)
 
     run_id = build_run_id(config, prefix=run_prefix)
     run_dir = ensure_run_dir(output_dir, run_id) if save_results else None

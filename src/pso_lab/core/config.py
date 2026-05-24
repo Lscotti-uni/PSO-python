@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, fields
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, ClassVar, Mapping
 
 import yaml
 
@@ -49,6 +49,25 @@ class PSOConfig:
     track_trajectory: bool = False
     trajectory_stride: int = 1
     log_every: int = 10
+    update_mode: str = "loop"
+    joblib_backend: str = "loky"
+    async_latency_ms: float = 0.0
+    async_jitter_ms: float = 0.0
+    neighborhood_size: int = 2
+
+    _STRATEGY_ALIASES: ClassVar[tuple[str, ...]] = (
+        "sequential", "seq", "v0",
+        "thread", "threading", "threads", "v1",
+        "process", "multiprocessing", "processes", "v2",
+        "async", "asyncio", "v3",
+        "vectorized", "vector", "numpy", "v4",
+        "joblib", "v5",
+    )
+    _TOPOLOGY_ALIASES: ClassVar[tuple[str, ...]] = (
+        "global", "gbest", "ring", "lbest", "von_neumann", "vonneumann", "neumann",
+    )
+    _UPDATE_MODES: ClassVar[tuple[str, ...]] = ("loop", "vectorized")
+    _JOBLIB_BACKENDS: ClassVar[tuple[str, ...]] = ("loky", "threading", "multiprocessing")
 
     def __post_init__(self) -> None:
         if self.dimensions <= 0:
@@ -67,10 +86,18 @@ class PSOConfig:
             raise ValueError("log_every must be positive")
         if self.velocity_clamp is not None and self.velocity_clamp <= 0:
             raise ValueError("velocity_clamp must be positive when provided")
-        if self.topology.strip().lower() not in {"global", "gbest"}:
-            raise ValueError("Only the global-best topology is supported in this project")
-        if self.strategy.strip().lower() not in {"sequential", "seq", "v0", "thread", "threading", "threads", "v1", "process", "multiprocessing", "processes", "v2"}:
-            raise ValueError("strategy must be one of: sequential, thread, process")
+        if self.neighborhood_size <= 0:
+            raise ValueError("neighborhood_size must be positive")
+        if self.async_latency_ms < 0 or self.async_jitter_ms < 0:
+            raise ValueError("async latency/jitter must be non-negative")
+        if self.topology.strip().lower() not in self._TOPOLOGY_ALIASES:
+            raise ValueError(f"topology must be one of: {', '.join(self._TOPOLOGY_ALIASES)}")
+        if self.strategy.strip().lower() not in self._STRATEGY_ALIASES:
+            raise ValueError(f"strategy must be one of: {', '.join(self._STRATEGY_ALIASES)}")
+        if self.update_mode.strip().lower() not in self._UPDATE_MODES:
+            raise ValueError(f"update_mode must be one of: {', '.join(self._UPDATE_MODES)}")
+        if self.joblib_backend.strip().lower() not in self._JOBLIB_BACKENDS:
+            raise ValueError(f"joblib_backend must be one of: {', '.join(self._JOBLIB_BACKENDS)}")
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any]) -> "PSOConfig":

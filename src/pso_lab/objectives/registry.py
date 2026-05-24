@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable
 
 import numpy as np
@@ -26,6 +26,7 @@ from .sphere import sphere
 
 Array = np.ndarray
 ObjectiveFn = Callable[[Array | list[float]], float | Array]
+BoundsSpec = tuple[float, float] | list[tuple[float, float]] | list[list[float]]
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,45 +34,78 @@ class ObjectiveSpec:
     key: str
     name: str
     fn: ObjectiveFn
-    default_bounds: tuple[float, float]
+    default_bounds: BoundsSpec
     known_optimum_value: float
     known_optimum_position: Callable[[int], np.ndarray]
+    fixed_dimensions: int | None = None
+    tags: tuple[str, ...] = field(default_factory=tuple)
+
+
+def _make_spec(
+    *,
+    key: str,
+    name: str,
+    fn: ObjectiveFn,
+    bounds: BoundsSpec,
+    optimum_value: float,
+    optimum_position: Callable[[int], np.ndarray],
+    fixed_dimensions: int | None = None,
+    tags: tuple[str, ...] = (),
+) -> ObjectiveSpec:
+    return ObjectiveSpec(
+        key=key,
+        name=name,
+        fn=fn,
+        default_bounds=bounds,
+        known_optimum_value=optimum_value,
+        known_optimum_position=optimum_position,
+        fixed_dimensions=fixed_dimensions,
+        tags=tags,
+    )
 
 
 OBJECTIVES: dict[str, ObjectiveSpec] = {
-    "sphere": ObjectiveSpec(
+    "sphere": _make_spec(
         key="sphere",
         name=SPHERE_NAME,
         fn=sphere,
-        default_bounds=SPHERE_BOUNDS,
-        known_optimum_value=SPHERE_OPTIMUM["value"],
-        known_optimum_position=SPHERE_OPTIMUM["position"],
+        bounds=SPHERE_BOUNDS,
+        optimum_value=SPHERE_OPTIMUM["value"],
+        optimum_position=SPHERE_OPTIMUM["position"],
+        tags=("unimodal", "separable"),
     ),
-    "rosenbrock": ObjectiveSpec(
+    "rosenbrock": _make_spec(
         key="rosenbrock",
         name=ROSENBROCK_NAME,
         fn=rosenbrock,
-        default_bounds=ROSENBROCK_BOUNDS,
-        known_optimum_value=ROSENBROCK_OPTIMUM["value"],
-        known_optimum_position=ROSENBROCK_OPTIMUM["position"],
+        bounds=ROSENBROCK_BOUNDS,
+        optimum_value=ROSENBROCK_OPTIMUM["value"],
+        optimum_position=ROSENBROCK_OPTIMUM["position"],
+        tags=("unimodal", "non-separable", "valley"),
     ),
-    "rastrigin": ObjectiveSpec(
+    "rastrigin": _make_spec(
         key="rastrigin",
         name=RASTRIGIN_NAME,
         fn=rastrigin,
-        default_bounds=RASTRIGIN_BOUNDS,
-        known_optimum_value=RASTRIGIN_OPTIMUM["value"],
-        known_optimum_position=RASTRIGIN_OPTIMUM["position"],
+        bounds=RASTRIGIN_BOUNDS,
+        optimum_value=RASTRIGIN_OPTIMUM["value"],
+        optimum_position=RASTRIGIN_OPTIMUM["position"],
+        tags=("multimodal", "separable"),
     ),
-    "ackley": ObjectiveSpec(
+    "ackley": _make_spec(
         key="ackley",
         name=ACKLEY_NAME,
         fn=ackley,
-        default_bounds=ACKLEY_BOUNDS,
-        known_optimum_value=ACKLEY_OPTIMUM["value"],
-        known_optimum_position=ACKLEY_OPTIMUM["position"],
+        bounds=ACKLEY_BOUNDS,
+        optimum_value=ACKLEY_OPTIMUM["value"],
+        optimum_position=ACKLEY_OPTIMUM["position"],
+        tags=("multimodal", "non-separable"),
     ),
 }
+
+
+def register_objective(spec: ObjectiveSpec) -> None:
+    OBJECTIVES[spec.key] = spec
 
 
 def list_objectives() -> list[str]:
@@ -84,3 +118,9 @@ def get_objective(name: str) -> ObjectiveSpec:
         available = ", ".join(list_objectives())
         raise KeyError(f"Unknown objective '{name}'. Available: {available}")
     return OBJECTIVES[key]
+
+
+# Side-effect registration: importing the registry should make every objective
+# (including use cases) discoverable, without requiring callers to import them
+# individually.
+from . import _use_case_registration  # noqa: E402, F401  (registration only)
