@@ -65,7 +65,7 @@ flowchart TD
     subgraph Core[core/]
         PSO[PSO engine]
         Bounds[Bounds policy]
-        Topology[Global-best topology]
+        Topology[Topology global/ring/von_neumann]
         Stop[Stopping rules]
         Config[PSOConfig]
     end
@@ -136,8 +136,9 @@ For a dedicated architecture handoff document, see
 - Standard benchmarks: `Sphere`, `Rosenbrock`, `Rastrigin`, `Ackley`.
 - Reproducible benchmark dimensions such as `2`, `10`, and `30`.
 - Structured logging and per-iteration instrumentation.
-- Configurable grid search over `w`, `c1`, `c2`, swarm size, and iterations
-  across `V0`, `V1`, and `V2`.
+- Configurable grid search over `w`, `c1`, `c2` across all six strategies
+  (`V0`-`V5`); swarm size and iterations are pinned in `defaults` to keep
+  the candidates comparable.
 - 2D and 3D visualization with convergence plots and swarm animations.
 - Structured persistence with seed, commit hash, and system metadata.
 

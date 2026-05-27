@@ -24,14 +24,14 @@ flowchart TD
     subgraph Core[core/]
         PSO[PSO engine]
         Bounds[Bounds policy]
-        Topology[Global-best topology]
+        Topology[Topology global/ring/von_neumann]
         Stop[Stopping rules]
         Config[PSOConfig]
     end
 
     subgraph Domain[objectives/ and parallel/]
         Objectives[Objective registry]
-        Eval[Evaluators V0/V1/V2]
+        Eval[Evaluators V0/V1/V2/V3/V4/V5]
     end
 
     subgraph Persistence[persistence and output]
@@ -70,7 +70,7 @@ flowchart TD
 | --- | --- |
 | `core/` | PSO state, update rule, stopping criteria, bounds, and topology |
 | `objectives/` | Benchmark functions and objective metadata |
-| `parallel/` | Sequential, threaded, and process-based evaluators |
+| `parallel/` | Six evaluation backends: sequential (V0), threaded (V1), process-based (V2), asyncio (V3), vectorized (V4), joblib (V5) |
 | `experiments/` | Single-run orchestration, benchmarks, and grid search |
 | `io/` | Persistence of summaries, histories, and trajectories |
 | `viz/` | Convergence plots and swarm visualizations |
@@ -84,15 +84,18 @@ flowchart TD
 | `BoundsPolicy` | Encapsulates box-constraint handling such as `clamp` and `reflect` |
 | `TopologyStrategy` | Encapsulates the social information flow in the swarm |
 
-The current delivery ships one topology implementation, `global-best`, but the
-interface remains explicit so the optimizer core does not depend on a hardcoded
-social-update mechanism.
+The current delivery ships three topology implementations — `global`,
+`ring`, and `von_neumann` — selectable from configuration without touching
+the optimizer core.
 
 ## Key Architectural Ideas
 
 - The PSO optimizer is implemented once and reused by every strategy.
-- Bound handling is isolated behind a policy interface.
-- The topology is also isolated behind an interface, even though the current
-  delivery keeps only `global-best`.
-- Result persistence is separated from optimization logic so saved runs can be
-  analyzed later without rerunning experiments.
+- Bound handling is isolated behind a policy interface (`clamp`, `reflect`).
+- The topology is isolated behind an interface (`global`, `ring`,
+  `von_neumann` ship today).
+- The fitness evaluator is also pluggable: six backends (V0-V5) implement
+  the same interface so the comparison between sequential, threaded,
+  process-based, asyncio, vectorized, and joblib execution is fair.
+- Result persistence is separated from optimization logic so saved runs can
+  be analyzed later without rerunning experiments.
