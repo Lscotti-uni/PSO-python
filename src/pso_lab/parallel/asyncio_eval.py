@@ -39,13 +39,13 @@ class AsyncioEvaluator:
         self.latency_ms = max(0.0, latency_ms)
         self.jitter_ms = max(0.0, jitter_ms)
         self._rng = random.Random(seed)
-        self._semaphore = asyncio.Semaphore(self.workers) if self.workers else None
         self.last_stats = EvaluationStats(strategy=self.name, batch_size=self.batch_size)
 
     async def _evaluate_chunk(
         self,
         chunk: np.ndarray,
         objective: ObjectiveFn,
+        semaphore: asyncio.Semaphore | None,
     ) -> tuple[np.ndarray, float]:
         async def _runner() -> tuple[np.ndarray, float]:
             start = perf_counter()
@@ -65,9 +65,9 @@ class AsyncioEvaluator:
             )
             return values, perf_counter() - start
 
-        if self._semaphore is None:
+        if semaphore is None:
             return await _runner()
-        async with self._semaphore:
+        async with semaphore:
             return await _runner()
 
     async def _evaluate_async(
@@ -75,8 +75,16 @@ class AsyncioEvaluator:
         positions: np.ndarray,
         objective: ObjectiveFn,
     ) -> tuple[list[np.ndarray], list[float]]:
+        # Create the semaphore inside the running event loop so it binds to the
+        # current loop. asyncio.run() creates a fresh loop on every evaluate()
+        # call, so a semaphore stored on the instance would raise
+        # "bound to a different event loop" on the second call.
+        semaphore = asyncio.Semaphore(self.workers) if self.workers else None
         chunks = chunk_ranges(len(positions), self.batch_size)
-        tasks = [self._evaluate_chunk(positions[start:stop], objective) for start, stop in chunks]
+        tasks = [
+            self._evaluate_chunk(positions[start:stop], objective, semaphore)
+            for start, stop in chunks
+        ]
         results = await asyncio.gather(*tasks)
         values = [chunk_values for chunk_values, _ in results]
         worker_times = [worker_time for _, worker_time in results]

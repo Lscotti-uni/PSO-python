@@ -37,6 +37,17 @@ def test_asyncio_matches_sequential(positions, objective) -> None:
     assert async_eval.last_stats.tasks_submitted == 2
 
 
+def test_asyncio_repeated_calls(positions, objective) -> None:
+    # Each evaluate() call invokes asyncio.run(), which builds a fresh event
+    # loop. Reusing async primitives across loops raises "bound to a different
+    # event loop" on the second call; this guards against that regression.
+    async_eval = build_evaluator("async", workers=2, batch_size=2, async_latency_ms=0.0)
+    expected = build_evaluator("sequential", batch_size=2).evaluate(positions, objective)
+    for _ in range(3):
+        actual = async_eval.evaluate(positions, objective)
+        assert np.allclose(actual, expected)
+
+
 def test_vectorized_matches_sequential(positions, objective) -> None:
     sequential = build_evaluator("sequential")
     vectorized = build_evaluator("vectorized")
