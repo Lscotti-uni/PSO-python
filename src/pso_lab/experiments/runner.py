@@ -123,7 +123,10 @@ def run_single_experiment(
     )
     return {
         "run_id": run_id,
-        "run_dir": str(run_dir) if run_dir is not None else None,
+        # Use POSIX-style separators so that CSVs containing this path remain
+        # portable between Windows producers and Linux consumers (and vice
+        # versa); the notebook resolves these paths with pathlib.Path.
+        "run_dir": run_dir.as_posix() if run_dir is not None else None,
         "summary": summary,
         "result": result,
     }
