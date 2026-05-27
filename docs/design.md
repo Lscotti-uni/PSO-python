@@ -69,6 +69,33 @@ The design uses explicit abstractions so the optimization logic stays modular:
 - The implementation measures total time, fitness time, update time, and overhead time.
 - The global best remains monotonic because it is selected from the personal-best archive.
 
+## Persistence Format Choices
+
+The project deliberately mixes three text formats, each chosen for the role
+where it fits best:
+
+- **YAML for inputs.** All configuration files in `configs/` (single runs,
+  benchmark suite, grid search, use case) use YAML because humans edit them
+  by hand. Comments and anchor-style nesting keep the intent visible without
+  the punctuation noise of JSON.
+- **JSON for per-run metadata.** Each saved run writes `summary.json` with
+  the resolved `PSOConfig`, environment info (`platform`, `python_version`,
+  `processor`, `cpu_count`), git commit, timing breakdown, and final fitness.
+  JSON is a strict, schema-friendly format with nested structures that loads
+  back into Python without losing type fidelity, which matters when the
+  notebook resolves nested keys such as `summary['metrics']['total_time']`.
+- **CSV for tabular outputs.** Per-iteration histories (`history.csv`) and
+  aggregated tables (`benchmark_runs.csv`, `benchmark_summary.csv`,
+  `grid_search_runs.csv`, `grid_search_summary.csv`) live in CSV because
+  pandas reads them in a single line and they survive being opened in a
+  spreadsheet for quick sanity checks. The two scopes (per-run history vs.
+  cross-run aggregation) are kept separate so neither has to embed the
+  other.
+- **NPZ for optional trajectories.** When `track_trajectory` is enabled,
+  full particle positions are stored in compressed `.npz` so disk usage
+  stays bounded on long runs — the design doc flags this as opt-in for
+  exactly that reason.
+
 ## Benchmarks And Analysis
 
 Benchmarks included:

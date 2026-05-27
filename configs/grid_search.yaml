@@ -3,10 +3,12 @@ output_dir: results/grid_search
 runs_output_dir: results/runs
 objective: sphere
 bounds: [-5.12, 5.12]
-dimensions: [10, 30]
+dimensions: [10]
 seeds: [11, 23, 37, 47, 59]
 metric: mean_best_value
 defaults:
+  swarm_size: 40
+  iterations: 150
   boundary_strategy: clamp
   topology: global
   tolerance: 1.0e-8  # Used only to report convergence_iteration; early stopping is disabled here.
@@ -33,9 +35,15 @@ strategies:
     strategy: vectorized
     batch_size: 1
     update_mode: vectorized
+  V5:
+    strategy: joblib
+    workers: 4
+    batch_size: 8
+    joblib_backend: loky
+# Rubric (A. Protocolo experimental): 3x3x3 in w/c1/c2 with 5 seeds, per
+# strategy. swarm_size and iterations stay fixed (see defaults above) so the
+# 27 candidates compare only the inertia/cognitive/social subspace.
 search_space:
   inertia: [0.50, 0.7298, 0.90]
   cognitive: [1.20, 1.49618, 1.80]
   social: [1.20, 1.49618, 1.80]
-  swarm_size: [30, 40, 60]
-  iterations: [150]
