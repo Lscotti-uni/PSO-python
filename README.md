@@ -25,7 +25,7 @@ Repository URL: `https://github.com/Lscotti-uni/PSO-python`
 | `configs/` | YAML configuration for single runs, benchmarks, and grid search |
 | `docs/design.md` | Short design document with architecture and trade-offs |
 | `notebooks/final_report.ipynb` | Narrated experimental report and analysis notebook |
-| `results/` | Saved artifacts for runs, benchmarks, grid search, and visualizations |
+| `results/` | Saved artifacts: runs, benchmarks, grid search, visualizations, SciPy baselines, and pendulum use case |
 | `scripts/` | Reproducible entry points required by the assignment |
 | `src/pso_lab/` | Project source code |
 | `tests/` | Unit tests for correctness and reproducibility |
@@ -72,9 +72,8 @@ flowchart TD
 
     subgraph Domain[objectives/ and parallel/]
         Objectives[Objective registry]
-        UseCase[Inverted pendulum PID]
+        UseCase[use_cases/ inverted-pendulum PID]
         Eval[Evaluators V0/V1/V2/V3/V4/V5]
-        Topo[Topologies global/ring/von_neumann]
     end
 
     subgraph Extras[bonuses]
