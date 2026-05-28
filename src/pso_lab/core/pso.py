@@ -146,7 +146,6 @@ class PSO:
             self._update_vectorized(state, social_best_positions)
             return
 
-        new_positions = np.empty_like(state.positions)
         new_velocities = np.empty_like(state.velocities)
 
         for particle_idx in range(self.config.swarm_size):
@@ -164,12 +163,16 @@ class PSO:
             )
             # Canonical PSO update: inertia preserves momentum, while cognitive
             # and social terms pull the particle toward promising regions.
-            velocity = self.config.inertia * state.velocities[particle_idx] + cognitive + social
-            new_velocities[particle_idx] = velocity
-            new_positions[particle_idx] = state.positions[particle_idx] + velocity
+            new_velocities[particle_idx] = (
+                self.config.inertia * state.velocities[particle_idx] + cognitive + social
+            )
 
+        # Velocity clamping must be applied before integrating the position so
+        # the per-iteration displacement respects the clamp envelope; otherwise
+        # the position takes the unclamped step and the clamp only affects the
+        # next iteration.
         state.velocities = self._apply_velocity_clamp(new_velocities)
-        state.positions = new_positions
+        state.positions = state.positions + state.velocities
 
     def _update_vectorized(self, state: SwarmState, social_best_positions: np.ndarray) -> None:
         # Whole-swarm NumPy update: same math as the loop, but evaluated as one

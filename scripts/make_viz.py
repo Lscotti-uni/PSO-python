@@ -8,7 +8,7 @@ import numpy as np
 from pso_lab.core import expand_bounds
 from pso_lab.io import load_history_csv, load_json
 from pso_lab.objectives import get_objective
-from pso_lab.viz import plot_convergence, save_gif_from_frames, save_swarm_frames
+from pso_lab.viz import plot_convergence, save_animation_mp4, save_gif_from_frames, save_swarm_frames
 
 
 def main() -> None:
@@ -17,6 +17,7 @@ def main() -> None:
     parser.add_argument("--output-dir", type=str, default="results/visualizations")
     parser.add_argument("--fps", type=int, default=8)
     parser.add_argument("--gif", action="store_true")
+    parser.add_argument("--mp4", action="store_true", help="Also export the animation as MP4 (requires ffmpeg).")
     args = parser.parse_args()
 
     run_dir = Path(args.run_dir)
@@ -52,6 +53,8 @@ def main() -> None:
     )
     if args.gif:
         save_gif_from_frames(frame_paths, output_dir / "swarm.gif", fps=args.fps)
+    if args.mp4:
+        save_animation_mp4(frame_paths, output_dir / "swarm.mp4", fps=args.fps)
     print(f"Visual assets saved under {output_dir.resolve()}")
 
 

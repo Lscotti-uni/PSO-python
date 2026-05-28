@@ -29,3 +29,16 @@ def test_differential_evolution_runs_and_returns_position() -> None:
     assert result.method == "differential_evolution"
     assert result.best_position.shape == (3,)
     assert result.best_value < 1.0
+
+
+def test_dual_annealing_runs_on_sphere() -> None:
+    pytest.importorskip("scipy")
+    from pso_lab.baselines import run_dual_annealing
+
+    spec = get_objective("sphere")
+    result = run_dual_annealing(
+        spec.fn, spec.default_bounds, dimensions=3, seed=23, maxiter=50
+    )
+    assert result.method == "dual_annealing"
+    assert result.best_position.shape == (3,)
+    assert result.best_value < 1.0
