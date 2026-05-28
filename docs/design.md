@@ -117,11 +117,19 @@ Post-run analysis is centralized in
 - builds the Cartesian product of experimental cases
 - loads `summary.json` and `history.csv`
 - produces summary tables
-- plots mean convergence, boxplots, and speedup
-- computes parallel efficiency and AUC tables (see
-  `pso_lab.experiments.analysis.compute_speedup_table` and `auc_table`)
+- plots mean convergence, boxplots, runtime, speedup, and overhead
+- computes parallel efficiency from per-variant worker counts
 - compares grid-search results across `V0`–`V5`
-- compares PSO against SciPy baselines on shared objectives
+- loads the inverted-pendulum runs and compares the tuned cost against the
+  untuned baseline gains
+- juxtaposes PSO best fitness against the SciPy baselines on shared
+  `(objective, dimension)` slices
+- demonstrates the `V3` asynchronous evaluator on an I/O-style objective so
+  the asymmetric case is actually measured rather than only described
+
+Helper functions for downstream reuse (`compute_speedup_table`, `auc_table`,
+`create_speedup_plot`, `plot_mean_convergence`, `create_boxplot`,
+`create_efficiency_plot`) live in `pso_lab.experiments.analysis`.
 
 ## Limitations And Trade-Offs
 
