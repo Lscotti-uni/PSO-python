@@ -22,9 +22,10 @@ def compute_auc(history: list[dict[str, Any]]) -> float:
     ys = np.asarray([row["best_fitness"] for row in history], dtype=float)
     if len(xs) < 2:
         return float(ys[0]) if len(ys) else 0.0
-    # NumPy 2.x removed trapz in favor of trapezoid, so we use the newer name
-    # to stay compatible with current Linux/WSL environments.
-    return float(np.trapezoid(ys, xs))
+    # np.trapezoid is the NumPy 2.x name; np.trapz is the legacy 1.x name.
+    # Fall back to the legacy name so older environments keep working.
+    integrate = getattr(np, "trapezoid", None) or np.trapz
+    return float(integrate(ys, xs))
 
 
 def convergence_iteration(history: list[dict[str, Any]], tolerance: float) -> int | None:

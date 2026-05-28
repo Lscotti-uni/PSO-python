@@ -40,9 +40,9 @@ strategies:
     workers: 4
     batch_size: 8
     joblib_backend: loky
-# Rubric (A. Protocolo experimental): 3x3x3 in w/c1/c2 with 5 seeds, per
-# strategy. swarm_size and iterations stay fixed (see defaults above) so the
-# 27 candidates compare only the inertia/cognitive/social subspace.
+# Experimental protocol: 3x3x3 grid over w/c1/c2 with 5 seeds per strategy.
+# swarm_size and iterations stay fixed (see defaults above) so the 27
+# candidates only differ along the inertia/cognitive/social subspace.
 search_space:
   inertia: [0.50, 0.7298, 0.90]
   cognitive: [1.20, 1.49618, 1.80]
