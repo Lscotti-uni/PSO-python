@@ -29,9 +29,15 @@ flowchart TD
         Config[PSOConfig]
     end
 
-    subgraph Domain[objectives/ and parallel/]
+    subgraph Domain[objectives/ + parallel/]
         Objectives[Objective registry]
+        UseCase[use_cases/ inverted-pendulum PID]
         Eval[Evaluators V0/V1/V2/V3/V4/V5]
+    end
+
+    subgraph Extras[bonuses]
+        Baselines[baselines/ scipy.optimize]
+        Dashboard[dashboard/ Gradio]
     end
 
     subgraph Persistence[persistence and output]
@@ -58,6 +64,10 @@ flowchart TD
     PSO --> Bounds
     PSO --> Topology
     PSO --> Stop
+
+    UseCase --> Objectives
+    Baselines --> Objectives
+    Dashboard --> Runner
 
     IO --> Results
     Results --> Viz
