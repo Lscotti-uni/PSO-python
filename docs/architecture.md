@@ -71,9 +71,13 @@ flowchart TD
 | `core/` | PSO state, update rule, stopping criteria, bounds, and topology |
 | `objectives/` | Benchmark functions and objective metadata |
 | `parallel/` | Six evaluation backends: sequential (V0), threaded (V1), process-based (V2), asyncio (V3), vectorized (V4), joblib (V5) |
-| `experiments/` | Single-run orchestration, benchmarks, and grid search |
+| `experiments/` | Single-run orchestration, benchmarks, grid search, and analysis helpers |
 | `io/` | Persistence of summaries, histories, and trajectories |
 | `viz/` | Convergence plots and swarm visualizations |
+| `baselines/` | SciPy reference optimisers (`differential_evolution`, `dual_annealing`, `L-BFGS-B`) |
+| `use_cases/` | Real-world objectives such as the inverted-pendulum PID tuning task |
+| `dashboard/` | Optional Gradio dashboard for interactive exploration |
+| `utils/` | Structured logging, system info, seeding, and timing helpers |
 | `scripts/` | Reproducible command-line entry points |
 
 ## Core Abstractions

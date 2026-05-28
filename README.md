@@ -241,12 +241,14 @@ Each individual run stores:
 - `trajectory.npz`: compressed trajectory, when enabled.
 - `run.log`: structured logging output.
 
-The `results/` directory is intentionally reduced to:
+The `results/` directory is organised by stage:
 
-- `results/benchmarks`
-- `results/grid_search`
-- `results/runs`
-- `results/visualizations`
+- `results/runs/` — per-run summaries, histories, and optional trajectories
+- `results/benchmarks/` — aggregated `benchmark_runs.csv` / `benchmark_summary.csv`
+- `results/grid_search/` — aggregated `grid_search_runs.csv` / `grid_search_summary.csv`
+- `results/visualizations/` — `convergence.png`, swarm frames, and GIFs
+- `results/baselines/` — SciPy baseline reference values (`baseline_*.json`)
+- `results/use_case_pendulum/` — runs for the inverted-pendulum PID tuning case
 
 The full `results/` directory is generated automatically by the scripts and is
 not versioned by default. This keeps the repository lightweight because full
